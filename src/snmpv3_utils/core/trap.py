@@ -39,7 +39,7 @@ def sendNotification(  # noqa: N802  (matches pysnmp camelCase convention)
     tuples, matching the old synchronous hlapi iterator contract so that
     send_trap can iterate over results with a plain for-loop.
     """
-    return asyncio.run(
+    result = asyncio.run(
         _async_send_notification(
             engine,
             usm,
@@ -49,6 +49,7 @@ def sendNotification(  # noqa: N802  (matches pysnmp camelCase convention)
             notification,
         )
     )
+    return [result]
 
 
 def _make_udp_target(host: str, port: int, timeout: int, retries: int) -> UdpTransportTarget:
@@ -98,7 +99,7 @@ def send_trap(
             return {"error": str(error_status), "host": host, "type": notification_type}
         return {"status": "ok", "host": host, "type": notification_type, "inform": inform}
 
-    return {"error": "No response", "host": host}
+    return {"error": "No response", "host": host, "type": notification_type}
 
 
 def listen(
