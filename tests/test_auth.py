@@ -1,13 +1,11 @@
 # tests/test_auth.py
 import csv
 import io
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from snmpv3_utils.core.auth import check_creds, bulk_check
-from snmpv3_utils.security import Credentials, SecurityLevel
+from snmpv3_utils.core.auth import bulk_check, check_creds
 
 
 @pytest.fixture
@@ -34,10 +32,17 @@ class TestCheckCreds:
 class TestBulkCheck:
     def _make_csv(self, rows: list[dict]) -> str:
         buf = io.StringIO()
-        writer = csv.DictWriter(buf, fieldnames=[
-            "username", "auth_protocol", "auth_key",
-            "priv_protocol", "priv_key", "security_level"
-        ])
+        writer = csv.DictWriter(
+            buf,
+            fieldnames=[
+                "username",
+                "auth_protocol",
+                "auth_key",
+                "priv_protocol",
+                "priv_key",
+                "security_level",
+            ],
+        )
         writer.writeheader()
         writer.writerows(rows)
         return buf.getvalue()
@@ -48,12 +53,26 @@ class TestBulkCheck:
             {"status": "ok", "host": "192.168.1.1", "username": "admin"},
             {"status": "failed", "host": "192.168.1.1", "username": "wrong"},
         ]
-        csv_content = self._make_csv([
-            {"username": "admin", "auth_protocol": "SHA256", "auth_key": "pass",
-             "priv_protocol": "AES128", "priv_key": "priv", "security_level": "authPriv"},
-            {"username": "wrong", "auth_protocol": "", "auth_key": "",
-             "priv_protocol": "", "priv_key": "", "security_level": "noAuthNoPriv"},
-        ])
+        csv_content = self._make_csv(
+            [
+                {
+                    "username": "admin",
+                    "auth_protocol": "SHA256",
+                    "auth_key": "pass",
+                    "priv_protocol": "AES128",
+                    "priv_key": "priv",
+                    "security_level": "authPriv",
+                },
+                {
+                    "username": "wrong",
+                    "auth_protocol": "",
+                    "auth_key": "",
+                    "priv_protocol": "",
+                    "priv_key": "",
+                    "security_level": "noAuthNoPriv",
+                },
+            ]
+        )
         csv_path = tmp_path / "creds.csv"
         csv_path.write_text(csv_content)
 
@@ -64,11 +83,19 @@ class TestBulkCheck:
 
     def test_bulk_returns_failed_on_invalid_credentials(self, tmp_path):
         """Rows with invalid credential combinations return status=failed without raising."""
-        csv_content = self._make_csv([
-            # authPriv with no auth_key triggers ValueError in build_usm_user
-            {"username": "bad", "auth_protocol": "SHA256", "auth_key": "",
-             "priv_protocol": "AES128", "priv_key": "priv", "security_level": "authPriv"},
-        ])
+        csv_content = self._make_csv(
+            [
+                # authPriv with no auth_key triggers ValueError in build_usm_user
+                {
+                    "username": "bad",
+                    "auth_protocol": "SHA256",
+                    "auth_key": "",
+                    "priv_protocol": "AES128",
+                    "priv_key": "priv",
+                    "security_level": "authPriv",
+                },
+            ]
+        )
         csv_path = tmp_path / "creds.csv"
         csv_path.write_text(csv_content)
 
@@ -79,10 +106,18 @@ class TestBulkCheck:
 
     def test_bulk_handles_invalid_enum_in_csv(self, tmp_path):
         """Unrecognised enum values in CSV are returned as per-row failures."""
-        csv_content = self._make_csv([
-            {"username": "bad", "auth_protocol": "SHA384", "auth_key": "key",
-             "priv_protocol": "AES128", "priv_key": "priv", "security_level": "authPriv"},
-        ])
+        csv_content = self._make_csv(
+            [
+                {
+                    "username": "bad",
+                    "auth_protocol": "SHA384",
+                    "auth_key": "key",
+                    "priv_protocol": "AES128",
+                    "priv_key": "priv",
+                    "security_level": "authPriv",
+                },
+            ]
+        )
         csv_path = tmp_path / "creds.csv"
         csv_path.write_text(csv_content)
 

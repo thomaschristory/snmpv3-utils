@@ -8,6 +8,7 @@ Note on trap listener: pysnmp v7 uses asyncio for its notification receiver.
 The synchronous ntfrcv API was removed. The listen() function is a stub
 pending asyncio implementation.
 """
+
 import asyncio
 from collections.abc import Callable
 from typing import Any

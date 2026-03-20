@@ -1,5 +1,6 @@
 # src/snmpv3_utils/cli/main.py
 """Root CLI application — registers all subcommand groups."""
+
 from importlib.metadata import version
 
 import typer
@@ -22,13 +23,20 @@ def _version_callback(value: bool) -> None:
 @app.callback()
 def main(
     _version: bool = typer.Option(
-        False, "--version", "-V", callback=_version_callback,
-        is_eager=True, help="Show version and exit.",
+        False,
+        "--version",
+        "-V",
+        callback=_version_callback,
+        is_eager=True,
+        help="Show version and exit.",
     ),
 ) -> None:
     pass
 
-app.add_typer(query.app, name="query", help="SNMP query operations (get, getnext, walk, bulk, set).")  # noqa: E501
+
+app.add_typer(
+    query.app, name="query", help="SNMP query operations (get, getnext, walk, bulk, set)."
+)  # noqa: E501
 app.add_typer(trap.app, name="trap", help="Trap operations (send, listen).")
 app.add_typer(auth.app, name="auth", help="Credential testing (check, bulk).")
 app.add_typer(profile.app, name="profile", help="Manage credential profiles.")

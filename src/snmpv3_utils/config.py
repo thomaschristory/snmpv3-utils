@@ -4,6 +4,7 @@
 Resolution order (lowest to highest priority):
   built-in defaults -> env vars / .env file -> named profile -> CLI flags
 """
+
 import os
 import tomllib
 from dataclasses import asdict

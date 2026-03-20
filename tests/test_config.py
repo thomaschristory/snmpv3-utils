@@ -16,9 +16,15 @@ from snmpv3_utils.security import AuthProtocol, Credentials, PrivProtocol, Secur
 def test_load_from_env_defaults(monkeypatch):
     """With no env vars set, returns Credentials with built-in defaults."""
     for key in [
-        "SNMPV3_USERNAME", "SNMPV3_AUTH_PROTOCOL", "SNMPV3_AUTH_KEY",
-        "SNMPV3_PRIV_PROTOCOL", "SNMPV3_PRIV_KEY", "SNMPV3_SECURITY_LEVEL",
-        "SNMPV3_PORT", "SNMPV3_TIMEOUT", "SNMPV3_RETRIES",
+        "SNMPV3_USERNAME",
+        "SNMPV3_AUTH_PROTOCOL",
+        "SNMPV3_AUTH_KEY",
+        "SNMPV3_PRIV_PROTOCOL",
+        "SNMPV3_PRIV_KEY",
+        "SNMPV3_SECURITY_LEVEL",
+        "SNMPV3_PORT",
+        "SNMPV3_TIMEOUT",
+        "SNMPV3_RETRIES",
     ]:
         monkeypatch.delenv(key, raising=False)
 

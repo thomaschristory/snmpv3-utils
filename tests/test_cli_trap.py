@@ -14,10 +14,14 @@ class TestTrapSend:
     @patch("snmpv3_utils.cli.trap.build_usm_user")
     def test_send_returns_ok(self, mock_usm, mock_creds, mock_trap):
         from snmpv3_utils.security import Credentials
+
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_trap.return_value = {  # noqa: E501
-            "status": "ok", "host": "192.168.1.1", "type": "trap", "inform": False
+            "status": "ok",
+            "host": "192.168.1.1",
+            "type": "trap",
+            "inform": False,
         }
 
         result = runner.invoke(app, ["trap", "send", "192.168.1.1", "--format", "json"])
@@ -29,10 +33,14 @@ class TestTrapSend:
     @patch("snmpv3_utils.cli.trap.build_usm_user")
     def test_send_inform_flag(self, mock_usm, mock_creds, mock_trap):
         from snmpv3_utils.security import Credentials
+
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_trap.return_value = {  # noqa: E501
-            "status": "ok", "host": "192.168.1.1", "type": "inform", "inform": True
+            "status": "ok",
+            "host": "192.168.1.1",
+            "type": "inform",
+            "inform": True,
         }
 
         result = runner.invoke(app, ["trap", "send", "192.168.1.1", "--inform", "--format", "json"])

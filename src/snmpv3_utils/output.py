@@ -4,6 +4,7 @@
 All functions accept an optional `console` parameter for testing.
 The `fmt` parameter controls output format: RICH (default) or JSON.
 """
+
 import json
 from enum import StrEnum
 from typing import Any

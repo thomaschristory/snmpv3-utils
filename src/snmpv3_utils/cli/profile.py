@@ -1,5 +1,6 @@
 # src/snmpv3_utils/cli/profile.py
 """CLI commands for snmpv3 profile *."""
+
 import json
 from dataclasses import asdict
 from typing import Annotated

@@ -1,11 +1,12 @@
 # tests/test_security.py
 import pytest
 from pysnmp.hlapi.v3arch.asyncio import UsmUserData
+
 from snmpv3_utils.security import (
     AuthProtocol,
+    Credentials,
     PrivProtocol,
     SecurityLevel,
-    Credentials,
     build_usm_user,
 )
 

@@ -4,6 +4,7 @@
 All functions return plain dicts or list of dicts — no rich, no CLI.
 Errors are returned as {"error": "<message>"} — never raised.
 """
+
 import asyncio
 from typing import Any
 
@@ -37,6 +38,7 @@ from pysnmp.hlapi.v3arch.asyncio import (
 # Sync wrappers around the async pysnmp v7 API.
 # These names are patched in tests, so they must be module-level names.
 # ---------------------------------------------------------------------------
+
 
 def getCmd(
     engine: SnmpEngine,
@@ -86,6 +88,7 @@ def walkCmd(
     **options: Any,
 ) -> list[tuple[Any, Any, Any, Any]]:
     """Sync wrapper: collect all results from async walk_cmd generator."""
+
     async def _collect() -> list[tuple[Any, Any, Any, Any]]:
         results = []
         async for item in _walk_cmd_async(engine, usm, transport, context, var_bind, **options):
@@ -113,9 +116,14 @@ def bulkCmd(
     """
     result = asyncio.run(
         _bulk_cmd_async(
-            engine, usm, transport, context,
-            non_repeaters, max_repetitions,
-            *var_binds, **options,
+            engine,
+            usm,
+            transport,
+            context,
+            non_repeaters,
+            max_repetitions,
+            *var_binds,
+            **options,
         )
     )
     return [result]
@@ -125,15 +133,15 @@ def bulkCmd(
 # Transport helper
 # ---------------------------------------------------------------------------
 
+
 def _transport(host: str, port: int, timeout: int, retries: int) -> UdpTransportTarget:
-    return asyncio.run(
-        UdpTransportTarget.create((host, port), timeout=timeout, retries=retries)
-    )
+    return asyncio.run(UdpTransportTarget.create((host, port), timeout=timeout, retries=retries))
 
 
 # ---------------------------------------------------------------------------
 # Var-bind helper
 # ---------------------------------------------------------------------------
+
 
 def _var_bind_to_dict(var_bind: Any) -> dict[str, Any]:
     return {"oid": var_bind[0].prettyPrint(), "value": var_bind[1].prettyPrint()}
@@ -142,6 +150,7 @@ def _var_bind_to_dict(var_bind: Any) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def get(
     host: str,
@@ -209,7 +218,11 @@ def walk(
         return [{"error": str(exc), "host": host, "oid": oid}]
     results = []
     for error_indication, error_status, _, var_binds in walkCmd(
-        engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid)),
+        engine,
+        usm,
+        transport,
+        ContextData(),
+        ObjectType(ObjectIdentity(oid)),
         lexicographicMode=False,
     ):
         if error_indication or error_status:
@@ -239,8 +252,12 @@ def bulk(
         return [{"error": str(exc), "host": host, "oid": oid}]
     results = []
     for error_indication, error_status, _, var_binds in bulkCmd(
-        engine, usm, transport, ContextData(),
-        0, max_repetitions,
+        engine,
+        usm,
+        transport,
+        ContextData(),
+        0,
+        max_repetitions,
         ObjectType(ObjectIdentity(oid)),
         lexicographicMode=False,
     ):
@@ -284,7 +301,10 @@ def set_oid(
     except Exception as exc:
         return {"error": str(exc), "host": host, "oid": oid}
     for error_indication, error_status, _, _ in setCmd(
-        engine, usm, transport, ContextData(),
+        engine,
+        usm,
+        transport,
+        ContextData(),
         ObjectType(ObjectIdentity(oid), snmp_value),
     ):
         if error_indication:

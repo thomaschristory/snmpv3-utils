@@ -1,10 +1,9 @@
 # tests/test_output.py
 import json
 
-import pytest
 from rich.console import Console
 
-from snmpv3_utils.output import OutputFormat, print_records, print_single, print_error
+from snmpv3_utils.output import OutputFormat, print_error, print_records, print_single
 
 
 def test_print_single_json(capsys):

@@ -4,6 +4,7 @@
 This is the only module in snmpv3_utils that imports pysnmp auth/priv protocol
 constants. All other modules receive a pre-built UsmUserData object.
 """
+
 from dataclasses import dataclass, field
 from enum import StrEnum
 

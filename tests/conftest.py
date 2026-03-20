@@ -10,4 +10,3 @@ def usm_no_auth():
 @pytest.fixture
 def oid_sysdescr():
     return "1.3.6.1.2.1.1.1.0"
-

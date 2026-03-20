@@ -1,5 +1,6 @@
 # src/snmpv3_utils/cli/query.py
 """CLI commands for snmpv3 query *."""
+
 from typing import Annotated
 
 import typer
@@ -24,11 +25,17 @@ app = typer.Typer(no_args_is_help=True)
 
 # Reusable credential option annotations
 _UsernameOpt = Annotated[str | None, typer.Option("--username", "-u", help="SNMPv3 username")]
-_AuthProtoOpt = Annotated[AuthProtocol | None, typer.Option("--auth-protocol", help="Auth protocol")]  # noqa: E501
+_AuthProtoOpt = Annotated[
+    AuthProtocol | None, typer.Option("--auth-protocol", help="Auth protocol")
+]  # noqa: E501
 _AuthKeyOpt = Annotated[str | None, typer.Option("--auth-key", help="Auth passphrase")]
-_PrivProtoOpt = Annotated[PrivProtocol | None, typer.Option("--priv-protocol", help="Priv protocol")]  # noqa: E501
+_PrivProtoOpt = Annotated[
+    PrivProtocol | None, typer.Option("--priv-protocol", help="Priv protocol")
+]  # noqa: E501
 _PrivKeyOpt = Annotated[str | None, typer.Option("--priv-key", help="Priv passphrase")]
-_SecLevelOpt = Annotated[SecurityLevel | None, typer.Option("--security-level", help="Security level")]  # noqa: E501
+_SecLevelOpt = Annotated[
+    SecurityLevel | None, typer.Option("--security-level", help="Security level")
+]  # noqa: E501
 _ProfileOpt = Annotated[str | None, typer.Option("--profile", "-p", help="Credential profile name")]  # noqa: E501
 _FormatOpt = Annotated[OutputFormat, typer.Option("--format", "-f", help="Output format")]
 _PortOpt = Annotated[int | None, typer.Option("--port", help="UDP port")]
@@ -49,9 +56,15 @@ def _build_usm(  # noqa: E501
     retries: int | None,
 ) -> tuple[UsmUserData, Credentials]:
     overrides = {
-        "username": username, "auth_protocol": auth_protocol, "auth_key": auth_key,
-        "priv_protocol": priv_protocol, "priv_key": priv_key, "security_level": security_level,
-        "port": port, "timeout": timeout, "retries": retries,
+        "username": username,
+        "auth_protocol": auth_protocol,
+        "auth_key": auth_key,
+        "priv_protocol": priv_protocol,
+        "priv_key": priv_key,
+        "security_level": security_level,
+        "port": port,
+        "timeout": timeout,
+        "retries": retries,
     }
     creds = resolve_credentials(profile_name=profile, cli_overrides=overrides)
     return build_usm_user(creds), creds
@@ -74,7 +87,18 @@ def get(
     fmt: _FormatOpt = OutputFormat.RICH,
 ) -> None:
     """Fetch a single OID value."""
-    usm, creds = _build_usm(profile, username, auth_protocol, auth_key, priv_protocol, priv_key, security_level, port, timeout, retries)  # noqa: E501
+    usm, creds = _build_usm(
+        profile,
+        username,
+        auth_protocol,
+        auth_key,
+        priv_protocol,
+        priv_key,
+        security_level,
+        port,
+        timeout,
+        retries,
+    )  # noqa: E501
     result = core_get(host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries)
     if "error" in result:
         print_error(result, fmt=fmt)
@@ -99,8 +123,21 @@ def getnext(
     fmt: _FormatOpt = OutputFormat.RICH,
 ) -> None:
     """Return the next OID after the given one (single GETNEXT step)."""
-    usm, creds = _build_usm(profile, username, auth_protocol, auth_key, priv_protocol, priv_key, security_level, port, timeout, retries)  # noqa: E501
-    result = core_getnext(host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries)  # noqa: E501
+    usm, creds = _build_usm(
+        profile,
+        username,
+        auth_protocol,
+        auth_key,
+        priv_protocol,
+        priv_key,
+        security_level,
+        port,
+        timeout,
+        retries,
+    )  # noqa: E501
+    result = core_getnext(
+        host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries
+    )  # noqa: E501
     if "error" in result:
         print_error(result, fmt=fmt)
         raise typer.Exit(1)
@@ -124,8 +161,21 @@ def walk(
     fmt: _FormatOpt = OutputFormat.RICH,
 ) -> None:
     """Traverse the MIB subtree rooted at oid."""
-    usm, creds = _build_usm(profile, username, auth_protocol, auth_key, priv_protocol, priv_key, security_level, port, timeout, retries)  # noqa: E501
-    results = core_walk(host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries)  # noqa: E501
+    usm, creds = _build_usm(
+        profile,
+        username,
+        auth_protocol,
+        auth_key,
+        priv_protocol,
+        priv_key,
+        security_level,
+        port,
+        timeout,
+        retries,
+    )  # noqa: E501
+    results = core_walk(
+        host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries
+    )  # noqa: E501
     if results and "error" in results[0]:
         print_error(results[0], fmt=fmt)
         raise typer.Exit(1)
@@ -146,12 +196,33 @@ def bulk(
     port: _PortOpt = None,
     timeout: _TimeoutOpt = None,
     retries: _RetriesOpt = None,
-    max_repetitions: Annotated[int, typer.Option("--max-repetitions", help="Max repetitions for GETBULK")] = 25,  # noqa: E501
+    max_repetitions: Annotated[
+        int, typer.Option("--max-repetitions", help="Max repetitions for GETBULK")
+    ] = 25,  # noqa: E501
     fmt: _FormatOpt = OutputFormat.RICH,
 ) -> None:
     """GETBULK retrieval of a MIB subtree."""
-    usm, creds = _build_usm(profile, username, auth_protocol, auth_key, priv_protocol, priv_key, security_level, port, timeout, retries)  # noqa: E501
-    results = core_bulk(host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries, max_repetitions=max_repetitions)  # noqa: E501
+    usm, creds = _build_usm(
+        profile,
+        username,
+        auth_protocol,
+        auth_key,
+        priv_protocol,
+        priv_key,
+        security_level,
+        port,
+        timeout,
+        retries,
+    )  # noqa: E501
+    results = core_bulk(
+        host,
+        oid,
+        usm,
+        port=creds.port,
+        timeout=creds.timeout,
+        retries=creds.retries,
+        max_repetitions=max_repetitions,
+    )  # noqa: E501
     if results and "error" in results[0]:
         print_error(results[0], fmt=fmt)
         raise typer.Exit(1)
@@ -177,8 +248,21 @@ def set_cmd(
     fmt: _FormatOpt = OutputFormat.RICH,
 ) -> None:
     """Set an OID value. --type int|str|hex required."""
-    usm, creds = _build_usm(profile, username, auth_protocol, auth_key, priv_protocol, priv_key, security_level, port, timeout, retries)  # noqa: E501
-    result = core_set(host, oid, value, type_, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries)  # noqa: E501
+    usm, creds = _build_usm(
+        profile,
+        username,
+        auth_protocol,
+        auth_key,
+        priv_protocol,
+        priv_key,
+        security_level,
+        port,
+        timeout,
+        retries,
+    )  # noqa: E501
+    result = core_set(
+        host, oid, value, type_, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries
+    )  # noqa: E501
     if "error" in result:
         print_error(result, fmt=fmt)
         raise typer.Exit(1)

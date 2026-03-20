@@ -14,6 +14,7 @@ class TestAuthCheck:
     @patch("snmpv3_utils.cli.auth.build_usm_user")
     def test_check_success(self, mock_usm, mock_creds, mock_check):
         from snmpv3_utils.security import Credentials
+
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_check.return_value = {"status": "ok", "host": "192.168.1.1", "username": "admin"}
@@ -25,10 +26,13 @@ class TestAuthCheck:
     @patch("snmpv3_utils.cli.auth.build_usm_user")
     def test_check_failure_exits_nonzero(self, mock_usm, mock_creds, mock_check):
         from snmpv3_utils.security import Credentials
+
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_check.return_value = {  # noqa: E501
-            "status": "failed", "host": "192.168.1.1", "error": "wrongDigest"
+            "status": "failed",
+            "host": "192.168.1.1",
+            "error": "wrongDigest",
         }
         result = runner.invoke(app, ["auth", "check", "192.168.1.1", "--format", "json"])
         assert result.exit_code != 0

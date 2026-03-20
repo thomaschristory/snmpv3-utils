@@ -1,9 +1,9 @@
 # tests/test_query.py
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from snmpv3_utils.core.query import get, getnext, walk, bulk, set_oid
+from snmpv3_utils.core.query import bulk, get, getnext, set_oid, walk
 
 
 @pytest.fixture
@@ -14,9 +14,11 @@ def usm(usm_no_auth):
 def _mock_cmd_result(oid="1.3.6.1.2.1.1.1.0", value="Linux router"):
     """Return a single (errorIndication, errorStatus, errorIndex, varBinds) tuple."""
     var_bind = MagicMock()
-    var_bind.__getitem__ = MagicMock(side_effect=lambda i: MagicMock(
-        prettyPrint=MagicMock(return_value=oid if i == 0 else value)
-    ))
+    var_bind.__getitem__ = MagicMock(
+        side_effect=lambda i: MagicMock(
+            prettyPrint=MagicMock(return_value=oid if i == 0 else value)
+        )
+    )
     return [(None, None, None, [var_bind])]
 
 
@@ -48,10 +50,12 @@ class TestGetnext:
 class TestWalk:
     @patch("snmpv3_utils.core.query.walkCmd")
     def test_returns_list_of_dicts(self, mock_walk, usm):
-        mock_walk.return_value = iter([
-            (None, None, None, _mock_cmd_result("1.3.6.1.2.1.1.1.0", "Linux")[0][3]),
-            (None, None, None, _mock_cmd_result("1.3.6.1.2.1.1.2.0", "sysObjectID")[0][3]),
-        ])
+        mock_walk.return_value = iter(
+            [
+                (None, None, None, _mock_cmd_result("1.3.6.1.2.1.1.1.0", "Linux")[0][3]),
+                (None, None, None, _mock_cmd_result("1.3.6.1.2.1.1.2.0", "sysObjectID")[0][3]),
+            ]
+        )
         results = walk("192.168.1.1", "1.3.6.1.2.1.1", usm)
         assert isinstance(results, list)
 
@@ -65,9 +69,11 @@ class TestWalk:
 class TestBulk:
     @patch("snmpv3_utils.core.query.bulkCmd")
     def test_returns_list_of_dicts(self, mock_bulk, usm):
-        mock_bulk.return_value = iter([
-            (None, None, None, _mock_cmd_result()[0][3]),
-        ])
+        mock_bulk.return_value = iter(
+            [
+                (None, None, None, _mock_cmd_result()[0][3]),
+            ]
+        )
         results = bulk("192.168.1.1", "1.3.6.1.2.1.1", usm)
         assert isinstance(results, list)
 

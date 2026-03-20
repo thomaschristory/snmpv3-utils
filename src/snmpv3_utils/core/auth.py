@@ -4,6 +4,7 @@
 check_creds: test a single USM credential set against a host.
 bulk_check: test all rows from a CSV credential file against a single host.
 """
+
 import csv
 from pathlib import Path
 from typing import Any
@@ -66,12 +67,14 @@ def bulk_check(host: str, csv_path: Path) -> list[dict[str, Any]]:
                 usm = build_usm_user(creds)
             except ValueError as e:
                 username = row.get("username", "")
-                results.append({
-                    "status": "failed",
-                    "host": host,
-                    "username": username,
-                    "error": str(e),
-                })
+                results.append(
+                    {
+                        "status": "failed",
+                        "host": host,
+                        "username": username,
+                        "error": str(e),
+                    }
+                )
                 continue
             results.append(check_creds(host, usm, username=creds.username))
     return results
