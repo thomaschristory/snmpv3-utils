@@ -88,24 +88,29 @@ def build_usm_user(creds: Credentials) -> UsmUserData:
 
     if level in (SecurityLevel.AUTH_NO_PRIV, SecurityLevel.AUTH_PRIV):
         if not creds.auth_protocol or not creds.auth_key:
-            raise ValueError("auth_protocol and auth_key required for authNoPriv/authPriv")
+            raise ValueError(
+                "auth_protocol and auth_key are required for authNoPriv and authPriv security levels"  # noqa: E501
+            )
+
+    auth_proto = creds.auth_protocol
+    assert auth_proto is not None
 
     if level == SecurityLevel.AUTH_NO_PRIV:
         return UsmUserData(
             creds.username,
             authKey=creds.auth_key.encode() if isinstance(creds.auth_key, str) else creds.auth_key,
-            authProtocol=_AUTH_PROTOCOL_MAP[creds.auth_protocol],  # type: ignore[index]
+            authProtocol=_AUTH_PROTOCOL_MAP[auth_proto],
             privProtocol=usmNoPrivProtocol,
         )
 
     # AUTH_PRIV
     if not creds.priv_protocol or not creds.priv_key:
-        raise ValueError("priv_protocol and priv_key required for authPriv")
+        raise ValueError("priv_protocol and priv_key are required for authPriv security level")
 
     return UsmUserData(
         creds.username,
         authKey=creds.auth_key.encode() if isinstance(creds.auth_key, str) else creds.auth_key,
-        authProtocol=_AUTH_PROTOCOL_MAP[creds.auth_protocol],  # type: ignore[index]
+        authProtocol=_AUTH_PROTOCOL_MAP[auth_proto],
         privKey=creds.priv_key.encode() if isinstance(creds.priv_key, str) else creds.priv_key,
         privProtocol=_PRIV_PROTOCOL_MAP[creds.priv_protocol],
     )

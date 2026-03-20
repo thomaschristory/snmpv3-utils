@@ -68,11 +68,23 @@ def test_auth_priv_sha512_aes256():
     assert isinstance(usm, UsmUserData)
 
 
+def test_auth_no_priv_missing_auth_key_raises():
+    """authNoPriv requires auth_key to be set."""
+    creds = Credentials(
+        username="bad",
+        auth_protocol=AuthProtocol.SHA256,
+        # auth_key intentionally missing
+        security_level=SecurityLevel.AUTH_NO_PRIV,
+    )
+    with pytest.raises(ValueError, match="auth_protocol and auth_key are required"):
+        build_usm_user(creds)
+
+
 def test_invalid_auth_priv_combination_raises():
     """authPriv requires both auth_key and priv_key."""
     creds = Credentials(
         username="bad",
         security_level=SecurityLevel.AUTH_PRIV,
     )
-    with pytest.raises(ValueError, match="auth_protocol and auth_key required"):
+    with pytest.raises(ValueError, match="auth_protocol and auth_key are required"):
         build_usm_user(creds)
