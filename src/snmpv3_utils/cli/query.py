@@ -3,6 +3,7 @@
 from typing import Annotated
 
 import typer
+from pysnmp.hlapi.v3arch.asyncio import UsmUserData
 
 from snmpv3_utils.config import resolve_credentials
 from snmpv3_utils.core.query import bulk as core_bulk
@@ -46,7 +47,7 @@ def _build_usm(  # noqa: E501
     port: int | None,
     timeout: int | None,
     retries: int | None,
-) -> tuple[object, Credentials]:
+) -> tuple[UsmUserData, Credentials]:
     overrides = {
         "username": username, "auth_protocol": auth_protocol, "auth_key": auth_key,
         "priv_protocol": priv_protocol, "priv_key": priv_key, "security_level": security_level,
@@ -125,6 +126,9 @@ def walk(
     """Traverse the MIB subtree rooted at oid."""
     usm, creds = _build_usm(profile, username, auth_protocol, auth_key, priv_protocol, priv_key, security_level, port, timeout, retries)  # noqa: E501
     results = core_walk(host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries)  # noqa: E501
+    if results and "error" in results[0]:
+        print_error(results[0], fmt=fmt)
+        raise typer.Exit(1)
     print_records(results, fmt=fmt)
 
 
@@ -148,6 +152,9 @@ def bulk(
     """GETBULK retrieval of a MIB subtree."""
     usm, creds = _build_usm(profile, username, auth_protocol, auth_key, priv_protocol, priv_key, security_level, port, timeout, retries)  # noqa: E501
     results = core_bulk(host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries, max_repetitions=max_repetitions)  # noqa: E501
+    if results and "error" in results[0]:
+        print_error(results[0], fmt=fmt)
+        raise typer.Exit(1)
     print_records(results, fmt=fmt)
 
 

@@ -53,3 +53,61 @@ class TestQueryWalk:
         ])
         assert result.exit_code == 0
         assert "1.3.6.1.2.1.1.1.0" in result.output
+
+    @patch("snmpv3_utils.cli.query.core_walk")
+    @patch("snmpv3_utils.cli.query.resolve_credentials")
+    @patch("snmpv3_utils.cli.query.build_usm_user")
+    def test_walk_exits_nonzero_on_error(self, mock_usm, mock_creds, mock_walk):
+        from snmpv3_utils.security import Credentials
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_walk.return_value = [{"error": "Timeout", "host": "192.168.1.1", "oid": "1.3.6.1"}]
+        result = runner.invoke(app, [
+            "query", "walk", "192.168.1.1", "1.3.6.1.2.1.1", "--format", "json"
+        ])
+        assert result.exit_code != 0
+
+
+class TestQueryGetnext:
+    @patch("snmpv3_utils.cli.query.core_getnext")
+    @patch("snmpv3_utils.cli.query.resolve_credentials")
+    @patch("snmpv3_utils.cli.query.build_usm_user")
+    def test_getnext_outputs_json(self, mock_usm, mock_creds, mock_getnext):
+        from snmpv3_utils.security import Credentials
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_getnext.return_value = {"oid": "1.3.6.1.2.1.1.2.0", "value": "sysObjectID"}
+        result = runner.invoke(app, [
+            "query", "getnext", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--format", "json"
+        ])
+        assert result.exit_code == 0
+        assert "sysObjectID" in result.output
+
+
+class TestQuerySet:
+    @patch("snmpv3_utils.cli.query.core_set")
+    @patch("snmpv3_utils.cli.query.resolve_credentials")
+    @patch("snmpv3_utils.cli.query.build_usm_user")
+    def test_set_outputs_json_on_success(self, mock_usm, mock_creds, mock_set):
+        from snmpv3_utils.security import Credentials
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_set.return_value = {"status": "ok", "host": "192.168.1.1", "oid": "1.3.6.1.2.1.1.5.0", "value": "myrouter"}
+        result = runner.invoke(app, [
+            "query", "set", "192.168.1.1", "1.3.6.1.2.1.1.5.0", "myrouter", "--format", "json"
+        ])
+        assert result.exit_code == 0
+        assert "ok" in result.output
+
+    @patch("snmpv3_utils.cli.query.core_set")
+    @patch("snmpv3_utils.cli.query.resolve_credentials")
+    @patch("snmpv3_utils.cli.query.build_usm_user")
+    def test_set_exits_nonzero_on_error(self, mock_usm, mock_creds, mock_set):
+        from snmpv3_utils.security import Credentials
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_set.return_value = {"error": "noSuchObject"}
+        result = runner.invoke(app, [
+            "query", "set", "192.168.1.1", "1.3.6.1.2.1.1.5.0", "x", "--format", "json"
+        ])
+        assert result.exit_code != 0
