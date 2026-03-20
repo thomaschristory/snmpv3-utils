@@ -105,7 +105,12 @@ def bulkCmd(
     *var_binds: ObjectType,
     **options: Any,
 ) -> list[tuple[Any, Any, Any, Any]]:
-    """Sync wrapper: run async bulk_cmd via asyncio.run()."""
+    """Sync wrapper: run async bulk_cmd via asyncio.run().
+
+    bulk_cmd is a coroutine (not an async generator), unlike walk_cmd which is
+    an async generator. Therefore asyncio.run() is correct here rather than the
+    'async for' pattern used in walkCmd.
+    """
     result = asyncio.run(
         _bulk_cmd_async(
             engine, usm, transport, context,
@@ -208,7 +213,9 @@ def walk(
         lexicographicMode=False,
     ):
         if error_indication or error_status:
-            results.append({"error": str(error_indication or error_status)})
+            results.append(
+                {"error": str(error_indication or error_status), "host": host, "oid": oid}
+            )
             break
         for vb in var_binds:
             results.append(_var_bind_to_dict(vb))
@@ -238,7 +245,9 @@ def bulk(
         lexicographicMode=False,
     ):
         if error_indication or error_status:
-            results.append({"error": str(error_indication or error_status)})
+            results.append(
+                {"error": str(error_indication or error_status), "host": host, "oid": oid}
+            )
             break
         for vb in var_binds:
             results.append(_var_bind_to_dict(vb))
@@ -264,7 +273,10 @@ def set_oid(
         "str": lambda: OctetString(value),
         "hex": lambda: OctetString(hexValue=value),
     }
-    snmp_value = type_map[value_type]()
+    try:
+        snmp_value = type_map[value_type]()
+    except (ValueError, Exception) as exc:
+        return {"error": f"Invalid value for type '{value_type}': {exc}", "host": host, "oid": oid}
 
     engine = SnmpEngine()
     try:
