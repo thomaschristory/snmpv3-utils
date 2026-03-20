@@ -1,0 +1,147 @@
+# src/snmpv3_utils/config.py
+"""Credential resolution and profile management.
+
+Resolution order (lowest to highest priority):
+  built-in defaults -> env vars / .env file -> named profile -> CLI flags
+"""
+import os
+import tomllib
+from dataclasses import asdict
+from pathlib import Path
+from typing import Any
+
+from dotenv import load_dotenv
+from platformdirs import user_config_dir
+
+from snmpv3_utils.security import AuthProtocol, Credentials, PrivProtocol, SecurityLevel
+
+
+def get_profiles_path() -> Path:
+    """Return the platform-appropriate path for profiles.toml."""
+    return Path(user_config_dir("snmpv3utils")) / "profiles.toml"
+
+
+def load_from_env() -> Credentials:
+    """Read SNMPV3_* environment variables (and .env file) into a Credentials object."""
+    load_dotenv()
+
+    raw_auth = os.getenv("SNMPV3_AUTH_PROTOCOL")
+    raw_priv = os.getenv("SNMPV3_PRIV_PROTOCOL")
+    raw_level = os.getenv("SNMPV3_SECURITY_LEVEL", "noAuthNoPriv")
+
+    return Credentials(
+        username=os.getenv("SNMPV3_USERNAME", ""),
+        auth_protocol=AuthProtocol(raw_auth) if raw_auth else None,
+        auth_key=os.getenv("SNMPV3_AUTH_KEY"),
+        priv_protocol=PrivProtocol(raw_priv) if raw_priv else None,
+        priv_key=os.getenv("SNMPV3_PRIV_KEY"),
+        security_level=SecurityLevel(raw_level),
+        port=int(os.getenv("SNMPV3_PORT", "161")),
+        timeout=int(os.getenv("SNMPV3_TIMEOUT", "5")),
+        retries=int(os.getenv("SNMPV3_RETRIES", "3")),
+    )
+
+
+def load_profile(name: str) -> Credentials:
+    """Load a named profile from profiles.toml. Raises KeyError if not found."""
+    path = get_profiles_path()
+    if not path.exists():
+        raise KeyError(name)
+
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+
+    profiles = data.get("profiles", {})
+    if name not in profiles:
+        raise KeyError(name)
+
+    p = profiles[name]
+    return Credentials(
+        username=p.get("username", ""),
+        auth_protocol=AuthProtocol(p["auth_protocol"]) if p.get("auth_protocol") else None,
+        auth_key=p.get("auth_key"),
+        priv_protocol=PrivProtocol(p["priv_protocol"]) if p.get("priv_protocol") else None,
+        priv_key=p.get("priv_key"),
+        security_level=SecurityLevel(p.get("security_level", "noAuthNoPriv")),
+        port=int(p.get("port", 161)),
+        timeout=int(p.get("timeout", 5)),
+        retries=int(p.get("retries", 3)),
+    )
+
+
+def save_profile(name: str, creds: Credentials) -> None:
+    """Save or overwrite a named profile in profiles.toml."""
+    import tomli_w
+
+    path = get_profiles_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    existing: dict[str, Any] = {}
+    if path.exists():
+        with open(path, "rb") as f:
+            existing = tomllib.load(f)
+
+    existing.setdefault("profiles", {})
+    existing["profiles"][name] = {
+        fname: (v.value if hasattr(v, "value") else v)
+        for fname, v in asdict(creds).items()
+        if v is not None
+    }
+
+    with open(path, "wb") as f:
+        tomli_w.dump(existing, f)
+
+
+def list_profiles() -> list[str]:
+    """Return all profile names, or an empty list if no profiles file exists."""
+    path = get_profiles_path()
+    if not path.exists():
+        return []
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+    return list(data.get("profiles", {}).keys())
+
+
+def delete_profile(name: str) -> None:
+    """Remove a profile. Silently does nothing if the profile doesn't exist."""
+    import tomli_w
+
+    path = get_profiles_path()
+    if not path.exists():
+        return
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+    data.get("profiles", {}).pop(name, None)
+    with open(path, "wb") as f:
+        tomli_w.dump(data, f)
+
+
+def resolve_credentials(
+    profile_name: str | None = None,
+    cli_overrides: dict[str, Any] | None = None,
+) -> Credentials:
+    """Merge credentials: defaults -> env -> profile -> CLI flags.
+
+    cli_overrides: dict of Credentials field names to values (None values are ignored).
+    """
+    base = load_from_env()
+
+    if profile_name:
+        profile = load_profile(profile_name)
+        base = _merge(base, profile)
+
+    if cli_overrides:
+        filtered = {k: v for k, v in cli_overrides.items() if v is not None}
+        base = _merge(base, Credentials(**filtered))
+
+    return base
+
+
+def _merge(base: Credentials, override: Credentials) -> Credentials:
+    """Return a new Credentials with non-default values from override applied to base."""
+    default = Credentials()
+    result = Credentials(**asdict(base))
+    for fname, value in asdict(override).items():
+        if value != getattr(default, fname):
+            setattr(result, fname, value)
+    return result
