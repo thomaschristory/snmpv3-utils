@@ -82,5 +82,9 @@ def add(
 @app.command()
 def delete(name: str) -> None:
     """Delete a named profile."""
-    delete_profile(name)
+    try:
+        delete_profile(name)
+    except KeyError:
+        typer.echo(f"Profile '{name}' not found.", err=True)
+        raise typer.Exit(1) from None
     typer.echo(f"Profile '{name}' deleted.")

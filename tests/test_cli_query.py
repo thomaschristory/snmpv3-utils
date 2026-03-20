@@ -1,6 +1,8 @@
 # tests/test_cli_query.py
 from unittest.mock import patch
+
 from typer.testing import CliRunner
+
 from snmpv3_utils.cli.main import app
 
 runner = CliRunner()
@@ -92,7 +94,9 @@ class TestQuerySet:
         from snmpv3_utils.security import Credentials
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
-        mock_set.return_value = {"status": "ok", "host": "192.168.1.1", "oid": "1.3.6.1.2.1.1.5.0", "value": "myrouter"}
+        mock_set.return_value = {  # noqa: E501
+            "status": "ok", "host": "192.168.1.1", "oid": "1.3.6.1.2.1.1.5.0", "value": "myrouter"
+        }
         result = runner.invoke(app, [
             "query", "set", "192.168.1.1", "1.3.6.1.2.1.1.5.0", "myrouter", "--format", "json"
         ])

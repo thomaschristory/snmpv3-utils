@@ -13,17 +13,17 @@ from snmpv3_utils.security import AuthProtocol, PrivProtocol, SecurityLevel, bui
 
 app = typer.Typer(no_args_is_help=True)
 
-_ProfileOpt = Annotated[str | None, typer.Option("--profile", "-p")]
-_FormatOpt = Annotated[OutputFormat, typer.Option("--format", "-f")]
-_UsernameOpt = Annotated[str | None, typer.Option("--username", "-u")]
-_AuthProtoOpt = Annotated[AuthProtocol | None, typer.Option("--auth-protocol")]
-_AuthKeyOpt = Annotated[str | None, typer.Option("--auth-key")]
-_PrivProtoOpt = Annotated[PrivProtocol | None, typer.Option("--priv-protocol")]
-_PrivKeyOpt = Annotated[str | None, typer.Option("--priv-key")]
-_SecLevelOpt = Annotated[SecurityLevel | None, typer.Option("--security-level")]
-_PortOpt = Annotated[int | None, typer.Option("--port")]
-_TimeoutOpt = Annotated[int | None, typer.Option("--timeout")]
-_RetriesOpt = Annotated[int | None, typer.Option("--retries")]
+_ProfileOpt = Annotated[str | None, typer.Option("--profile", "-p", help="Credential profile name")]  # noqa: E501
+_FormatOpt = Annotated[OutputFormat, typer.Option("--format", "-f", help="Output format")]
+_UsernameOpt = Annotated[str | None, typer.Option("--username", "-u", help="SNMPv3 username")]
+_AuthProtoOpt = Annotated[AuthProtocol | None, typer.Option("--auth-protocol", help="Auth protocol")]  # noqa: E501
+_AuthKeyOpt = Annotated[str | None, typer.Option("--auth-key", help="Auth passphrase")]
+_PrivProtoOpt = Annotated[PrivProtocol | None, typer.Option("--priv-protocol", help="Priv protocol")]  # noqa: E501
+_PrivKeyOpt = Annotated[str | None, typer.Option("--priv-key", help="Priv passphrase")]
+_SecLevelOpt = Annotated[SecurityLevel | None, typer.Option("--security-level", help="Security level")]  # noqa: E501
+_PortOpt = Annotated[int | None, typer.Option("--port", help="UDP port")]
+_TimeoutOpt = Annotated[int | None, typer.Option("--timeout", help="Timeout seconds")]
+_RetriesOpt = Annotated[int | None, typer.Option("--retries", help="Number of retries")]
 
 
 @app.command()

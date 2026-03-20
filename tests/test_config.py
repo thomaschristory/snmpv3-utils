@@ -1,18 +1,14 @@
 # tests/test_config.py
-import os
-from pathlib import Path
 
 import pytest
-import tomllib
 
 from snmpv3_utils.config import (
-    load_from_env,
-    resolve_credentials,
-    get_profiles_path,
-    load_profile,
-    save_profile,
-    list_profiles,
     delete_profile,
+    list_profiles,
+    load_from_env,
+    load_profile,
+    resolve_credentials,
+    save_profile,
 )
 from snmpv3_utils.security import AuthProtocol, Credentials, PrivProtocol, SecurityLevel
 
@@ -129,6 +125,8 @@ def test_profile_security_level_overrides_env(tmp_path, monkeypatch):
     monkeypatch.setenv("SNMPV3_SECURITY_LEVEL", "authPriv")
     monkeypatch.setenv("SNMPV3_AUTH_KEY", "somekey")
 
-    save_profile("minimal", Credentials(username="guest", security_level=SecurityLevel.NO_AUTH_NO_PRIV))
+    save_profile(  # noqa: E501
+        "minimal", Credentials(username="guest", security_level=SecurityLevel.NO_AUTH_NO_PRIV)
+    )
     creds = resolve_credentials(profile_name="minimal")
     assert creds.security_level == SecurityLevel.NO_AUTH_NO_PRIV  # profile wins

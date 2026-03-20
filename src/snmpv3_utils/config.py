@@ -109,15 +109,18 @@ def list_profiles() -> list[str]:
 
 
 def delete_profile(name: str) -> None:
-    """Remove a profile. Silently does nothing if the profile doesn't exist."""
+    """Remove a profile. Raises KeyError if the profile doesn't exist."""
     import tomli_w
 
     path = get_profiles_path()
     if not path.exists():
-        return
+        raise KeyError(name)
     with open(path, "rb") as f:
         data = tomllib.load(f)
-    data.get("profiles", {}).pop(name, None)
+    profiles = data.get("profiles", {})
+    if name not in profiles:
+        raise KeyError(name)
+    profiles.pop(name)
     with open(path, "wb") as f:
         tomli_w.dump(data, f)
 
