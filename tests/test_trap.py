@@ -37,3 +37,4 @@ class TestSendTrap:
         result = send_trap("192.168.1.1", usm, inform=False)
         assert "error" in result
         assert result.get("type") == "trap"
+        assert result.get("inform") is False

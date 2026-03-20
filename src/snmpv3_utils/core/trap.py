@@ -94,12 +94,22 @@ def send_trap(
         NotificationType(ObjectIdentity(oid)),
     ):
         if error_indication:
-            return {"error": str(error_indication), "host": host, "type": notification_type}
+            return {
+                "error": str(error_indication),
+                "host": host,
+                "type": notification_type,
+                "inform": inform,
+            }
         if error_status:
-            return {"error": str(error_status), "host": host, "type": notification_type}
+            return {
+                "error": str(error_status),
+                "host": host,
+                "type": notification_type,
+                "inform": inform,
+            }
         return {"status": "ok", "host": host, "type": notification_type, "inform": inform}
 
-    return {"error": "No response", "host": host, "type": notification_type}
+    return {"error": "No response", "host": host, "type": notification_type, "inform": inform}
 
 
 def listen(
