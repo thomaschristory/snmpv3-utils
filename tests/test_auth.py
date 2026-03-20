@@ -61,3 +61,18 @@ class TestBulkCheck:
         assert len(results) == 2
         assert results[0]["status"] == "ok"
         assert results[1]["status"] == "failed"
+
+    def test_bulk_returns_failed_on_invalid_credentials(self, tmp_path):
+        """Rows with invalid credential combinations return status=failed without raising."""
+        csv_content = self._make_csv([
+            # authPriv with no auth_key triggers ValueError in build_usm_user
+            {"username": "bad", "auth_protocol": "SHA256", "auth_key": "",
+             "priv_protocol": "AES128", "priv_key": "priv", "security_level": "authPriv"},
+        ])
+        csv_path = tmp_path / "creds.csv"
+        csv_path.write_text(csv_content)
+
+        results = bulk_check("192.168.1.1", csv_path)
+        assert len(results) == 1
+        assert results[0]["status"] == "failed"
+        assert "error" in results[0]
