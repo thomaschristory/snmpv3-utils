@@ -148,7 +148,10 @@ def get(
 ) -> dict[str, Any]:
     """Fetch a single OID value."""
     engine = SnmpEngine()
-    transport = _transport(host, port, timeout, retries)
+    try:
+        transport = _transport(host, port, timeout, retries)
+    except Exception as exc:
+        return {"error": str(exc), "host": host, "oid": oid}
     for error_indication, error_status, _, var_binds in getCmd(
         engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid))
     ):
@@ -170,7 +173,10 @@ def getnext(
 ) -> dict[str, Any]:
     """Return the next OID after the given one (single GETNEXT step)."""
     engine = SnmpEngine()
-    transport = _transport(host, port, timeout, retries)
+    try:
+        transport = _transport(host, port, timeout, retries)
+    except Exception as exc:
+        return {"error": str(exc), "host": host, "oid": oid}
     for error_indication, error_status, _, var_binds in nextCmd(
         engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid))
     ):
@@ -192,7 +198,10 @@ def walk(
 ) -> list[dict[str, Any]]:
     """Traverse the subtree rooted at oid via repeated GETNEXT."""
     engine = SnmpEngine()
-    transport = _transport(host, port, timeout, retries)
+    try:
+        transport = _transport(host, port, timeout, retries)
+    except Exception as exc:
+        return [{"error": str(exc), "host": host, "oid": oid}]
     results = []
     for error_indication, error_status, _, var_binds in walkCmd(
         engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid)),
@@ -217,7 +226,10 @@ def bulk(
 ) -> list[dict[str, Any]]:
     """GETBULK retrieval."""
     engine = SnmpEngine()
-    transport = _transport(host, port, timeout, retries)
+    try:
+        transport = _transport(host, port, timeout, retries)
+    except Exception as exc:
+        return [{"error": str(exc), "host": host, "oid": oid}]
     results = []
     for error_indication, error_status, _, var_binds in bulkCmd(
         engine, usm, transport, ContextData(),
@@ -255,7 +267,10 @@ def set_oid(
     snmp_value = type_map[value_type]()
 
     engine = SnmpEngine()
-    transport = _transport(host, port, timeout, retries)
+    try:
+        transport = _transport(host, port, timeout, retries)
+    except Exception as exc:
+        return {"error": str(exc), "host": host, "oid": oid}
     for error_indication, error_status, _, _ in setCmd(
         engine, usm, transport, ContextData(),
         ObjectType(ObjectIdentity(oid), snmp_value),

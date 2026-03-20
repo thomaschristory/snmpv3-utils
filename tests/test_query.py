@@ -71,6 +71,13 @@ class TestBulk:
         results = bulk("192.168.1.1", "1.3.6.1.2.1.1", usm)
         assert isinstance(results, list)
 
+    @patch("snmpv3_utils.core.query.bulkCmd")
+    def test_returns_error_on_failure(self, mock_bulk, usm):
+        mock_bulk.return_value = iter([("Timeout", None, None, [])])
+        results = bulk("192.168.1.1", "1.3.6.1.2.1.1", usm)
+        assert len(results) == 1
+        assert "error" in results[0]
+
 
 class TestSet:
     @patch("snmpv3_utils.core.query.setCmd")
