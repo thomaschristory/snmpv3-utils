@@ -49,10 +49,11 @@ def load_profile_dict(name: str) -> dict[str, Any]:
     Raises KeyError if not found.
     """
     path = get_profiles_path()
-    if not path.exists():
-        raise KeyError(name)
-    with open(path, "rb") as f:
-        data = tomllib.load(f)
+    try:
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+    except FileNotFoundError:
+        raise KeyError(name) from None
     profiles = data.get("profiles", {})
     if name not in profiles:
         raise KeyError(name)
@@ -84,9 +85,11 @@ def save_profile(name: str, creds: Credentials) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
     existing: dict[str, Any] = {}
-    if path.exists():
+    try:
         with open(path, "rb") as f:
             existing = tomllib.load(f)
+    except FileNotFoundError:
+        pass
 
     existing.setdefault("profiles", {})
     existing["profiles"][name] = {
@@ -102,10 +105,11 @@ def save_profile(name: str, creds: Credentials) -> None:
 def list_profiles() -> list[str]:
     """Return all profile names, or an empty list if no profiles file exists."""
     path = get_profiles_path()
-    if not path.exists():
+    try:
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+    except FileNotFoundError:
         return []
-    with open(path, "rb") as f:
-        data = tomllib.load(f)
     return list(data.get("profiles", {}).keys())
 
 
@@ -114,10 +118,11 @@ def delete_profile(name: str) -> None:
     import tomli_w
 
     path = get_profiles_path()
-    if not path.exists():
-        raise KeyError(name)
-    with open(path, "rb") as f:
-        data = tomllib.load(f)
+    try:
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+    except FileNotFoundError:
+        raise KeyError(name) from None
     profiles = data.get("profiles", {})
     if name not in profiles:
         raise KeyError(name)

@@ -10,8 +10,8 @@ runner = CliRunner()
 
 class TestQueryGet:
     @patch("snmpv3_utils.cli.query.core_get")
-    @patch("snmpv3_utils.cli.query.resolve_credentials")
-    @patch("snmpv3_utils.cli.query.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_get_outputs_json(self, mock_usm, mock_creds, mock_get):
         from snmpv3_utils.security import Credentials
 
@@ -26,8 +26,8 @@ class TestQueryGet:
         assert "Linux" in result.output
 
     @patch("snmpv3_utils.cli.query.core_get")
-    @patch("snmpv3_utils.cli.query.resolve_credentials")
-    @patch("snmpv3_utils.cli.query.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_get_exits_nonzero_on_error(self, mock_usm, mock_creds, mock_get):
         from snmpv3_utils.security import Credentials
 
@@ -43,8 +43,8 @@ class TestQueryGet:
 
 class TestQueryWalk:
     @patch("snmpv3_utils.cli.query.core_walk")
-    @patch("snmpv3_utils.cli.query.resolve_credentials")
-    @patch("snmpv3_utils.cli.query.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_walk_outputs_json_array(self, mock_usm, mock_creds, mock_walk):
         from snmpv3_utils.security import Credentials
 
@@ -60,8 +60,8 @@ class TestQueryWalk:
         assert "1.3.6.1.2.1.1.1.0" in result.output
 
     @patch("snmpv3_utils.cli.query.core_walk")
-    @patch("snmpv3_utils.cli.query.resolve_credentials")
-    @patch("snmpv3_utils.cli.query.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_walk_exits_nonzero_on_error(self, mock_usm, mock_creds, mock_walk):
         from snmpv3_utils.security import Credentials
 
@@ -76,8 +76,8 @@ class TestQueryWalk:
 
 class TestQueryGetnext:
     @patch("snmpv3_utils.cli.query.core_getnext")
-    @patch("snmpv3_utils.cli.query.resolve_credentials")
-    @patch("snmpv3_utils.cli.query.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_getnext_outputs_json(self, mock_usm, mock_creds, mock_getnext):
         from snmpv3_utils.security import Credentials
 
@@ -93,8 +93,8 @@ class TestQueryGetnext:
 
 class TestQuerySet:
     @patch("snmpv3_utils.cli.query.core_set")
-    @patch("snmpv3_utils.cli.query.resolve_credentials")
-    @patch("snmpv3_utils.cli.query.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_set_outputs_json_on_success(self, mock_usm, mock_creds, mock_set):
         from snmpv3_utils.security import Credentials
 
@@ -114,8 +114,8 @@ class TestQuerySet:
         assert "ok" in result.output
 
     @patch("snmpv3_utils.cli.query.core_set")
-    @patch("snmpv3_utils.cli.query.resolve_credentials")
-    @patch("snmpv3_utils.cli.query.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_set_exits_nonzero_on_error(self, mock_usm, mock_creds, mock_set):
         from snmpv3_utils.security import Credentials
 

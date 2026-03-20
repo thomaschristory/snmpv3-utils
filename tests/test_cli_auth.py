@@ -10,8 +10,8 @@ runner = CliRunner()
 
 class TestAuthCheck:
     @patch("snmpv3_utils.cli.auth.core_check_creds")
-    @patch("snmpv3_utils.cli.auth.resolve_credentials")
-    @patch("snmpv3_utils.cli.auth.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_check_success(self, mock_usm, mock_creds, mock_check):
         from snmpv3_utils.security import Credentials
 
@@ -22,8 +22,8 @@ class TestAuthCheck:
         assert result.exit_code == 0
 
     @patch("snmpv3_utils.cli.auth.core_check_creds")
-    @patch("snmpv3_utils.cli.auth.resolve_credentials")
-    @patch("snmpv3_utils.cli.auth.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_check_failure_exits_nonzero(self, mock_usm, mock_creds, mock_check):
         from snmpv3_utils.security import Credentials
 

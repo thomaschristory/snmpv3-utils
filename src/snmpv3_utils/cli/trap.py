@@ -4,65 +4,25 @@
 from typing import Annotated
 
 import typer
-from pysnmp.hlapi.v3arch.asyncio import UsmUserData
 
-from snmpv3_utils.config import resolve_credentials
+from snmpv3_utils.cli._options import (
+    AuthKeyOpt,
+    AuthProtoOpt,
+    FormatOpt,
+    PortOpt,
+    PrivKeyOpt,
+    PrivProtoOpt,
+    ProfileOpt,
+    RetriesOpt,
+    SecLevelOpt,
+    TimeoutOpt,
+    UsernameOpt,
+    build_usm_from_cli,
+)
 from snmpv3_utils.core.trap import send_trap as core_send_trap
 from snmpv3_utils.output import OutputFormat, print_error, print_single
-from snmpv3_utils.security import (
-    AuthProtocol,
-    Credentials,
-    PrivProtocol,
-    SecurityLevel,
-    build_usm_user,
-)
 
 app = typer.Typer(no_args_is_help=True)
-
-_ProfileOpt = Annotated[str | None, typer.Option("--profile", "-p", help="Credential profile name")]  # noqa: E501
-_FormatOpt = Annotated[OutputFormat, typer.Option("--format", "-f", help="Output format")]
-_UsernameOpt = Annotated[str | None, typer.Option("--username", "-u", help="SNMPv3 username")]
-_AuthProtoOpt = Annotated[
-    AuthProtocol | None, typer.Option("--auth-protocol", help="Auth protocol")
-]  # noqa: E501
-_AuthKeyOpt = Annotated[str | None, typer.Option("--auth-key", help="Auth passphrase")]
-_PrivProtoOpt = Annotated[
-    PrivProtocol | None, typer.Option("--priv-protocol", help="Priv protocol")
-]  # noqa: E501
-_PrivKeyOpt = Annotated[str | None, typer.Option("--priv-key", help="Priv passphrase")]
-_SecLevelOpt = Annotated[
-    SecurityLevel | None, typer.Option("--security-level", help="Security level")
-]  # noqa: E501
-_PortOpt = Annotated[int | None, typer.Option("--port", help="UDP port")]
-_TimeoutOpt = Annotated[int | None, typer.Option("--timeout", help="Timeout seconds")]
-_RetriesOpt = Annotated[int | None, typer.Option("--retries", help="Number of retries")]
-
-
-def _build_usm(  # noqa: E501
-    profile: str | None,
-    username: str | None,
-    auth_protocol: AuthProtocol | None,
-    auth_key: str | None,
-    priv_protocol: PrivProtocol | None,
-    priv_key: str | None,
-    security_level: SecurityLevel | None,
-    port: int | None,
-    timeout: int | None,
-    retries: int | None,
-) -> tuple[UsmUserData, Credentials]:
-    overrides = {
-        "username": username,
-        "auth_protocol": auth_protocol,
-        "auth_key": auth_key,
-        "priv_protocol": priv_protocol,
-        "priv_key": priv_key,
-        "security_level": security_level,
-        "port": port,
-        "timeout": timeout,
-        "retries": retries,
-    }
-    creds = resolve_credentials(profile_name=profile, cli_overrides=overrides)
-    return build_usm_user(creds), creds
 
 
 @app.command()
@@ -72,24 +32,24 @@ def send(
     inform: Annotated[
         bool, typer.Option("--inform", help="Send INFORM-REQUEST (acknowledged)")
     ] = False,
-    port: _PortOpt = None,
-    timeout: _TimeoutOpt = None,
-    retries: _RetriesOpt = None,
-    profile: _ProfileOpt = None,
-    username: _UsernameOpt = None,
-    auth_protocol: _AuthProtoOpt = None,
-    auth_key: _AuthKeyOpt = None,
-    priv_protocol: _PrivProtoOpt = None,
-    priv_key: _PrivKeyOpt = None,
-    security_level: _SecLevelOpt = None,
-    fmt: _FormatOpt = OutputFormat.RICH,
+    port: PortOpt = None,
+    timeout: TimeoutOpt = None,
+    retries: RetriesOpt = None,
+    profile: ProfileOpt = None,
+    username: UsernameOpt = None,
+    auth_protocol: AuthProtoOpt = None,
+    auth_key: AuthKeyOpt = None,
+    priv_protocol: PrivProtoOpt = None,
+    priv_key: PrivKeyOpt = None,
+    security_level: SecLevelOpt = None,
+    fmt: FormatOpt = OutputFormat.RICH,
 ) -> None:
     """Send an SNMPv3 trap or inform to a host.
 
     By default sends a fire-and-forget trap (coldStart OID).
     Use --inform to send an INFORM-REQUEST and wait for acknowledgment.
     """
-    usm, creds = _build_usm(
+    usm, creds = build_usm_from_cli(
         profile,
         username,
         auth_protocol,
@@ -100,7 +60,7 @@ def send(
         port,
         timeout,
         retries,
-    )  # noqa: E501
+    )
     result = core_send_trap(
         host,
         usm,
@@ -119,14 +79,14 @@ def send(
 @app.command()
 def listen(
     port: Annotated[int, typer.Option("--port", help="UDP port to listen on")] = 162,
-    profile: _ProfileOpt = None,
-    username: _UsernameOpt = None,
-    auth_protocol: _AuthProtoOpt = None,
-    auth_key: _AuthKeyOpt = None,
-    priv_protocol: _PrivProtoOpt = None,
-    priv_key: _PrivKeyOpt = None,
-    security_level: _SecLevelOpt = None,
-    fmt: _FormatOpt = OutputFormat.RICH,
+    profile: ProfileOpt = None,
+    username: UsernameOpt = None,
+    auth_protocol: AuthProtoOpt = None,
+    auth_key: AuthKeyOpt = None,
+    priv_protocol: PrivProtoOpt = None,
+    priv_key: PrivKeyOpt = None,
+    security_level: SecLevelOpt = None,
+    fmt: FormatOpt = OutputFormat.RICH,
 ) -> None:
     """Listen for incoming SNMPv3 traps (blocking).
 
@@ -136,7 +96,7 @@ def listen(
     """
     from snmpv3_utils.core.trap import listen as core_listen
 
-    usm, creds = _build_usm(
+    usm, _creds = build_usm_from_cli(
         profile,
         username,
         auth_protocol,
@@ -147,7 +107,7 @@ def listen(
         None,
         None,
         None,
-    )  # noqa: E501
+    )
 
     typer.echo(f"Listening for SNMPv3 traps on port {port}... (Ctrl+C to stop)")
     try:
