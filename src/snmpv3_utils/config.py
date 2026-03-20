@@ -42,20 +42,26 @@ def load_from_env() -> Credentials:
     )
 
 
-def load_profile(name: str) -> Credentials:
-    """Load a named profile from profiles.toml. Raises KeyError if not found."""
+def load_profile_dict(name: str) -> dict[str, Any]:
+    """Load profile as a sparse dict of only the fields present in TOML.
+
+    Raises KeyError if not found.
+    """
     path = get_profiles_path()
     if not path.exists():
         raise KeyError(name)
-
     with open(path, "rb") as f:
         data = tomllib.load(f)
-
     profiles = data.get("profiles", {})
     if name not in profiles:
         raise KeyError(name)
+    result: dict[str, Any] = profiles[name]
+    return result  # raw dict, only explicitly saved fields
 
-    p = profiles[name]
+
+def load_profile(name: str) -> Credentials:
+    """Load a named profile as a Credentials object. Raises KeyError if not found."""
+    p = load_profile_dict(name)
     return Credentials(
         username=p.get("username", ""),
         auth_protocol=AuthProtocol(p["auth_protocol"]) if p.get("auth_protocol") else None,
@@ -116,32 +122,38 @@ def delete_profile(name: str) -> None:
         tomli_w.dump(data, f)
 
 
+def _apply_overrides(base: Credentials, overrides: dict[str, Any]) -> Credentials:
+    """Apply a sparse dict of overrides onto base Credentials.
+
+    Only keys present in overrides are changed.
+    """
+    result_dict = asdict(base)
+    for key, value in overrides.items():
+        if key in result_dict:
+            # Convert string enum values back to enum types
+            if key == "auth_protocol" and value is not None:
+                value = AuthProtocol(value) if isinstance(value, str) else value
+            elif key == "priv_protocol" and value is not None:
+                value = PrivProtocol(value) if isinstance(value, str) else value
+            elif key == "security_level" and value is not None:
+                value = SecurityLevel(value) if isinstance(value, str) else value
+            result_dict[key] = value
+    return Credentials(**result_dict)
+
+
 def resolve_credentials(
     profile_name: str | None = None,
     cli_overrides: dict[str, Any] | None = None,
 ) -> Credentials:
-    """Merge credentials: defaults -> env -> profile -> CLI flags.
-
-    cli_overrides: dict of Credentials field names to values (None values are ignored).
-    """
+    """Merge credentials: defaults -> env -> profile -> CLI flags."""
     base = load_from_env()
 
     if profile_name:
-        profile = load_profile(profile_name)
-        base = _merge(base, profile)
+        profile_dict = load_profile_dict(profile_name)  # sparse dict
+        base = _apply_overrides(base, profile_dict)
 
     if cli_overrides:
-        filtered = {k: v for k, v in cli_overrides.items() if v is not None}
-        base = _merge(base, Credentials(**filtered))
+        # Filter None values — CLI only passes what the user explicitly typed
+        base = _apply_overrides(base, {k: v for k, v in cli_overrides.items() if v is not None})
 
     return base
-
-
-def _merge(base: Credentials, override: Credentials) -> Credentials:
-    """Return a new Credentials with non-default values from override applied to base."""
-    default = Credentials()
-    result = Credentials(**asdict(base))
-    for fname, value in asdict(override).items():
-        if value != getattr(default, fname):
-            setattr(result, fname, value)
-    return result

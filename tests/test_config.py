@@ -110,3 +110,25 @@ def test_load_nonexistent_profile_raises(tmp_path, monkeypatch):
 
     with pytest.raises(KeyError, match="nope"):
         load_profile("nope")
+
+
+def test_profile_port_overrides_env_port(tmp_path, monkeypatch):
+    """Profile with default port should still override a non-default env port."""
+    monkeypatch.setattr("snmpv3_utils.config.get_profiles_path", lambda: tmp_path / "profiles.toml")
+    monkeypatch.setenv("SNMPV3_PORT", "1234")
+
+    # Profile explicitly saves port=161
+    save_profile("myprofile", Credentials(username="admin", port=161))
+    creds = resolve_credentials(profile_name="myprofile")
+    assert creds.port == 161  # profile value wins over env
+
+
+def test_profile_security_level_overrides_env(tmp_path, monkeypatch):
+    """Profile with noAuthNoPriv should override env authPriv."""
+    monkeypatch.setattr("snmpv3_utils.config.get_profiles_path", lambda: tmp_path / "profiles.toml")
+    monkeypatch.setenv("SNMPV3_SECURITY_LEVEL", "authPriv")
+    monkeypatch.setenv("SNMPV3_AUTH_KEY", "somekey")
+
+    save_profile("minimal", Credentials(username="guest", security_level=SecurityLevel.NO_AUTH_NO_PRIV))
+    creds = resolve_credentials(profile_name="minimal")
+    assert creds.security_level == SecurityLevel.NO_AUTH_NO_PRIV  # profile wins
