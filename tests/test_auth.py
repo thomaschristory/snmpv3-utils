@@ -76,3 +76,17 @@ class TestBulkCheck:
         assert len(results) == 1
         assert results[0]["status"] == "failed"
         assert "error" in results[0]
+
+    def test_bulk_handles_invalid_enum_in_csv(self, tmp_path):
+        """Unrecognised enum values in CSV are returned as per-row failures."""
+        csv_content = self._make_csv([
+            {"username": "bad", "auth_protocol": "SHA384", "auth_key": "key",
+             "priv_protocol": "AES128", "priv_key": "priv", "security_level": "authPriv"},
+        ])
+        csv_path = tmp_path / "creds.csv"
+        csv_path.write_text(csv_content)
+
+        results = bulk_check("192.168.1.1", csv_path)
+        assert len(results) == 1
+        assert results[0]["status"] == "failed"
+        assert "error" in results[0]

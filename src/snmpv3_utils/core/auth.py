@@ -49,23 +49,27 @@ def bulk_check(host: str, csv_path: Path) -> list[dict[str, Any]]:
     results = []
     with open(csv_path, newline="") as f:
         for row in csv.DictReader(f):
-            raw_auth = row.get("auth_protocol")
-            raw_priv = row.get("priv_protocol")
-            creds = Credentials(
-                username=row.get("username", ""),
-                auth_protocol=AuthProtocol(raw_auth) if raw_auth else None,
-                auth_key=row.get("auth_key") or None,
-                priv_protocol=PrivProtocol(raw_priv) if raw_priv else None,
-                priv_key=row.get("priv_key") or None,
-                security_level=SecurityLevel(row.get("security_level", "noAuthNoPriv")),
-            )
             try:
+                raw_auth = row.get("auth_protocol")
+                raw_priv = row.get("priv_protocol")
+                auth_proto = AuthProtocol(raw_auth) if raw_auth else None
+                priv_proto = PrivProtocol(raw_priv) if raw_priv else None
+                sec_level = SecurityLevel(row.get("security_level", "noAuthNoPriv"))
+                creds = Credentials(
+                    username=row.get("username", ""),
+                    auth_protocol=auth_proto,
+                    auth_key=row.get("auth_key") or None,
+                    priv_protocol=priv_proto,
+                    priv_key=row.get("priv_key") or None,
+                    security_level=sec_level,
+                )
                 usm = build_usm_user(creds)
             except ValueError as e:
+                username = row.get("username", "")
                 results.append({
                     "status": "failed",
                     "host": host,
-                    "username": creds.username,
+                    "username": username,
                     "error": str(e),
                 })
                 continue
