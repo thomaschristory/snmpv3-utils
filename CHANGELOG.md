@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-03-20
+
 ### Added
 - Initial release with full SNMPv3 query, trap, and credential testing support
 - `snmpv3 query` — GET, GETNEXT, WALK, BULK, SET
