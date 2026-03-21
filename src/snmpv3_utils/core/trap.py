@@ -10,6 +10,7 @@ pending asyncio implementation.
 """
 
 import asyncio
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -25,7 +26,7 @@ from pysnmp.hlapi.v3arch.asyncio import (
     send_notification as _async_send_notification,
 )
 
-from snmpv3_utils.types import TrapResult
+from snmpv3_utils.types import StressResult, TrapResult
 
 
 def sendNotification(  # noqa: N802  (matches pysnmp camelCase convention)
@@ -141,6 +142,131 @@ async def _send_one(
         if error_status:
             return str(error_status)
         return None
+
+
+_MAX_ERROR_SAMPLES = 5
+
+
+async def _stress_loop(
+    host: str,
+    usm: UsmUserData,
+    count: int,
+    duration: int | None,
+    rate: int,
+    concurrency: int,
+    inform: bool,
+    port: int,
+    timeout: int,
+    retries: int,
+    oid: str,
+    on_progress: Callable[[int, int | None], None] | None,
+) -> StressResult:
+    """Async orchestrator for stress testing.
+
+    Count mode (duration=None): dispatch exactly `count` traps.
+    Duration mode (duration set): dispatch until elapsed >= duration seconds.
+    """
+    engine = SnmpEngine()
+    transport = await UdpTransportTarget.create(
+        (host, port), timeout=timeout, retries=retries
+    )
+    sem = asyncio.Semaphore(concurrency)
+    tasks: list[asyncio.Task[str | None]] = []
+    interval = 1.0 / rate if rate > 0 else 0
+    total = count if duration is None else None
+    start = time.monotonic()
+
+    if duration is not None:
+        # Duration mode: loop until time exceeds duration
+        while time.monotonic() - start < duration:
+            tasks.append(
+                asyncio.create_task(
+                    _send_one(engine, usm, transport, oid, inform, sem)
+                )
+            )
+            if on_progress:
+                on_progress(len(tasks), total)
+            if interval:
+                await asyncio.sleep(interval)
+    else:
+        # Count mode: dispatch exactly `count` tasks
+        for _ in range(count):
+            tasks.append(
+                asyncio.create_task(
+                    _send_one(engine, usm, transport, oid, inform, sem)
+                )
+            )
+            if on_progress:
+                on_progress(len(tasks), total)
+            if interval:
+                await asyncio.sleep(interval)
+
+    if not tasks:
+        return StressResult(
+            host=host,
+            sent=0,
+            errors=0,
+            success_rate="N/A",
+            duration_s=round(time.monotonic() - start, 2),
+            rate_achieved=0.0,
+            error_samples=[],
+        )
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    elapsed = time.monotonic() - start
+    sent = len(results)
+
+    # Collect errors: non-None strings or exceptions
+    error_list: list[str] = []
+    for r in results:
+        if isinstance(r, BaseException):
+            error_list.append(str(r))
+        elif r is not None:
+            error_list.append(str(r))
+
+    errors = len(error_list)
+    # Dedup keeping insertion order, take first 5
+    unique_errors = list(dict.fromkeys(error_list))[:_MAX_ERROR_SAMPLES]
+
+    return StressResult(
+        host=host,
+        sent=sent,
+        errors=errors,
+        success_rate=f"{(sent - errors) / sent * 100:.1f}%" if sent > 0 else "N/A",
+        duration_s=round(elapsed, 2),
+        rate_achieved=round(sent / elapsed, 1) if elapsed > 0 else 0.0,
+        error_samples=unique_errors,
+    )
+
+
+def stress_trap(
+    host: str,
+    usm: UsmUserData,
+    count: int = 1000,
+    duration: int | None = None,
+    rate: int = 100,
+    concurrency: int = 10,
+    inform: bool = False,
+    port: int = 162,
+    timeout: int = 5,
+    retries: int = 0,
+    oid: str = "1.3.6.1.6.3.1.1.5.1",
+    on_progress: Callable[[int, int | None], None] | None = None,
+) -> StressResult:
+    """Send a high volume of traps for stress testing.
+
+    count: total traps to send (count mode, ignored if duration is set).
+    duration: run for N seconds (duration mode, overrides count).
+    rate: target traps/sec dispatch rate (0 = unlimited).
+    concurrency: max concurrent in-flight traps via semaphore.
+    on_progress: callback(dispatched, total) called after each task dispatch.
+    """
+    return asyncio.run(
+        _stress_loop(
+            host, usm, count, duration, rate, concurrency,
+            inform, port, timeout, retries, oid, on_progress,
+        )
+    )
 
 
 def listen(
