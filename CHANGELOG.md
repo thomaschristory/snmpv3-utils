@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-21
+
+### Changed
+- Refactored all SNMP operations to async internals (`_get`, `_getnext`, `_walk`, `_bulk`, `_set_oid`) with `_*_with_transport` wrappers; public sync API unchanged
+- `bulk_check` now runs credential checks in parallel via `asyncio.gather()` with a shared engine and transport
+- Removed sync wrappers (`getCmd`, `nextCmd`, `setCmd`, `walkCmd`, `bulkCmd`) and `_transport` helper
+
+### Added
+- `max_concurrent` parameter on `bulk_check` (default 10, `None` = no limit) for concurrency control via `asyncio.Semaphore`
+- `_parse_row_to_usm` helper for testable CSV row parsing
+- `_check_creds_async` for async single-credential verification
+- Transport failure and exception path tests for query and auth modules
+
+### Fixed
+- `_walk` now wraps async iteration in `try/except` consistent with other SNMP operations
+- `asyncio.gather` uses `return_exceptions=True` so one task failure doesn't destroy all results
+- CSV file is read once in `_bulk_check_async` instead of potentially twice
+- `max_concurrent` validated to be a positive integer or `None`
+
 ## [0.1.1] - 2026-03-21
 
 ### Fixed
