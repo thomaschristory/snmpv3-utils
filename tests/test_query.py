@@ -30,12 +30,14 @@ class TestGet:
         assert isinstance(result, dict)
         assert "oid" in result
         assert "value" in result
+        assert set(result.keys()) == {"oid", "value"}
 
     @patch("snmpv3_utils.core.query.getCmd")
     def test_returns_error_dict_on_failure(self, mock_get, usm):
         mock_get.return_value = iter([("Timeout", None, None, [])])
         result = get("192.168.1.1", "1.3.6.1.2.1.1.1.0", usm)
         assert "error" in result
+        assert set(result.keys()) == {"error", "host", "oid"}
 
 
 class TestGetnext:
@@ -45,6 +47,7 @@ class TestGetnext:
         result = getnext("192.168.1.1", "1.3.6.1.2.1.1.1.0", usm)
         assert isinstance(result, dict)
         assert "oid" in result
+        assert set(result.keys()) == {"oid", "value"}
 
 
 class TestWalk:
@@ -58,6 +61,7 @@ class TestWalk:
         )
         results = walk("192.168.1.1", "1.3.6.1.2.1.1", usm)
         assert isinstance(results, list)
+        assert all(set(r.keys()) == {"oid", "value"} for r in results)
 
     @patch("snmpv3_utils.core.query.walkCmd")
     def test_empty_walk_returns_empty_list(self, mock_walk, usm):
@@ -76,6 +80,7 @@ class TestBulk:
         )
         results = bulk("192.168.1.1", "1.3.6.1.2.1.1", usm)
         assert isinstance(results, list)
+        assert all(set(r.keys()) == {"oid", "value"} for r in results)
 
     @patch("snmpv3_utils.core.query.bulkCmd")
     def test_returns_error_on_failure(self, mock_bulk, usm):
@@ -83,6 +88,7 @@ class TestBulk:
         results = bulk("192.168.1.1", "1.3.6.1.2.1.1", usm)
         assert len(results) == 1
         assert "error" in results[0]
+        assert set(results[0].keys()) == {"error", "host", "oid"}
 
 
 class TestSet:
@@ -91,9 +97,16 @@ class TestSet:
         mock_set.return_value = iter([(None, None, None, [])])
         result = set_oid("192.168.1.1", "1.3.6.1.2.1.1.5.0", "myrouter", "str", usm)
         assert result.get("status") == "ok"
+        assert set(result.keys()) == {"status", "host", "oid", "value"}
 
     @patch("snmpv3_utils.core.query.setCmd")
     def test_returns_error_on_failure(self, mock_set, usm):
         mock_set.return_value = iter([("noSuchObject", None, None, [])])
         result = set_oid("192.168.1.1", "1.3.6.1.2.1.1.5.0", "x", "str", usm)
         assert "error" in result
+        assert set(result.keys()) == {"error", "host", "oid"}
+
+    def test_set_returns_error_with_host_on_invalid_type(self, usm):
+        result = set_oid("192.168.1.1", "1.3.6.1.2.1.1.1.0", "val", "bogus", usm)
+        assert "error" in result
+        assert set(result.keys()) == {"error", "host", "oid"}

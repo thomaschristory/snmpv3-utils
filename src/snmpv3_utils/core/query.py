@@ -34,6 +34,8 @@ from pysnmp.hlapi.v3arch.asyncio import (
     walk_cmd as _walk_cmd_async,
 )
 
+from snmpv3_utils.types import SetResult, VarBindResult, VarBindSuccess
+
 # ---------------------------------------------------------------------------
 # Sync wrappers around the async pysnmp v7 API.
 # These names are patched in tests, so they must be module-level names.
@@ -143,7 +145,7 @@ def _transport(host: str, port: int, timeout: int, retries: int) -> UdpTransport
 # ---------------------------------------------------------------------------
 
 
-def _var_bind_to_dict(var_bind: Any) -> dict[str, Any]:
+def _var_bind_to_dict(var_bind: Any) -> VarBindSuccess:
     return {"oid": var_bind[0].prettyPrint(), "value": var_bind[1].prettyPrint()}
 
 
@@ -159,7 +161,7 @@ def get(
     port: int = 161,
     timeout: int = 5,
     retries: int = 3,
-) -> dict[str, Any]:
+) -> VarBindResult:
     """Fetch a single OID value."""
     engine = SnmpEngine()
     try:
@@ -184,7 +186,7 @@ def getnext(
     port: int = 161,
     timeout: int = 5,
     retries: int = 3,
-) -> dict[str, Any]:
+) -> VarBindResult:
     """Return the next OID after the given one (single GETNEXT step)."""
     engine = SnmpEngine()
     try:
@@ -209,14 +211,14 @@ def walk(
     port: int = 161,
     timeout: int = 5,
     retries: int = 3,
-) -> list[dict[str, Any]]:
+) -> list[VarBindResult]:
     """Traverse the subtree rooted at oid via repeated GETNEXT."""
     engine = SnmpEngine()
     try:
         transport = _transport(host, port, timeout, retries)
     except Exception as exc:
         return [{"error": str(exc), "host": host, "oid": oid}]
-    results = []
+    results: list[VarBindResult] = []
     for error_indication, error_status, _, var_binds in walkCmd(
         engine,
         usm,
@@ -243,14 +245,14 @@ def bulk(
     timeout: int = 5,
     retries: int = 3,
     max_repetitions: int = 25,
-) -> list[dict[str, Any]]:
+) -> list[VarBindResult]:
     """GETBULK retrieval."""
     engine = SnmpEngine()
     try:
         transport = _transport(host, port, timeout, retries)
     except Exception as exc:
         return [{"error": str(exc), "host": host, "oid": oid}]
-    results = []
+    results: list[VarBindResult] = []
     for error_indication, error_status, _, var_binds in bulkCmd(
         engine,
         usm,
@@ -280,10 +282,14 @@ def set_oid(
     port: int = 161,
     timeout: int = 5,
     retries: int = 3,
-) -> dict[str, Any]:
+) -> SetResult:
     """Set an OID value. value_type: 'int' | 'str' | 'hex'."""
     if value_type not in ("int", "str", "hex"):
-        return {"error": f"Unknown type '{value_type}'. Use int, str, or hex."}
+        return {
+            "error": f"Unknown type '{value_type}'. Use int, str, or hex.",
+            "host": host,
+            "oid": oid,
+        }
 
     type_map: dict[str, Any] = {
         "int": lambda: Integer(int(value)),
