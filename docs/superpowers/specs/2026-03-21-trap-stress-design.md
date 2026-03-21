@@ -101,7 +101,7 @@ snmpv3 trap stress <host> [options]
 
 Options mirror the core parameters plus standard credential options from `_options.py`.
 
-`--count` and `--duration` are mutually exclusive (use typer callback validation).
+`--duration` overrides `--count` when both are provided (duration mode takes precedence).
 
 **Rich mode:** `rich.progress.Progress` bar showing `dispatched/total` (count mode) or `dispatched` with elapsed time (duration mode). After completion, prints `StressResult` via `print_single`.
 
@@ -129,7 +129,7 @@ Mock boundary: `snmpv3_utils.core.trap._async_send_notification` with `AsyncMock
 1. **JSON output**: mock `stress_trap`, invoke with `--format json`, verify parseable JSON with correct keys
 2. **Exit code 0**: at least one success
 3. **Exit code 1**: all errors
-4. **Mutually exclusive options**: `--count` + `--duration` together → error
+4. **Duration overrides count**: `--count 10 --duration 5` runs in duration mode
 
 ## Files Changed
 
