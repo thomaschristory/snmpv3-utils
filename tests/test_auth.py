@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from snmpv3_utils.core.auth import bulk_check, check_creds
+from snmpv3_utils.core.auth import _parse_row_to_usm, bulk_check, check_creds
 
 
 @pytest.fixture
@@ -138,3 +138,53 @@ class TestBulkCheck:
         assert len(results) == 1
         assert results[0]["status"] == "failed"
         assert "error" in results[0]
+
+
+class TestParseRowToUsm:
+    def test_valid_authpriv_row(self):
+        row = {
+            "username": "admin",
+            "auth_protocol": "SHA256",
+            "auth_key": "authpass",
+            "priv_protocol": "AES128",
+            "priv_key": "privpass",
+            "security_level": "authPriv",
+        }
+        usm = _parse_row_to_usm(row)
+        assert usm.userName == "admin"
+
+    def test_valid_noauthnopriv_row(self):
+        row = {
+            "username": "public",
+            "auth_protocol": "",
+            "auth_key": "",
+            "priv_protocol": "",
+            "priv_key": "",
+            "security_level": "noAuthNoPriv",
+        }
+        usm = _parse_row_to_usm(row)
+        assert usm.userName == "public"
+
+    def test_invalid_auth_protocol_raises(self):
+        row = {
+            "username": "bad",
+            "auth_protocol": "SHA384",
+            "auth_key": "key",
+            "priv_protocol": "AES128",
+            "priv_key": "priv",
+            "security_level": "authPriv",
+        }
+        with pytest.raises(ValueError):
+            _parse_row_to_usm(row)
+
+    def test_missing_auth_key_raises(self):
+        row = {
+            "username": "bad",
+            "auth_protocol": "SHA256",
+            "auth_key": "",
+            "priv_protocol": "AES128",
+            "priv_key": "priv",
+            "security_level": "authPriv",
+        }
+        with pytest.raises(ValueError):
+            _parse_row_to_usm(row)
