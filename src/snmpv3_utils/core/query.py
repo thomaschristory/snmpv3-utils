@@ -42,19 +42,6 @@ from snmpv3_utils.types import SetResult, VarBindResult, VarBindSuccess
 # ---------------------------------------------------------------------------
 
 
-def getCmd(
-    engine: SnmpEngine,
-    usm: UsmUserData,
-    transport: UdpTransportTarget,
-    context: ContextData,
-    *var_binds: ObjectType,
-    **options: Any,
-) -> list[tuple[Any, Any, Any, Any]]:
-    """Sync wrapper: run async get_cmd via asyncio.run()."""
-    result = asyncio.run(_get_cmd_async(engine, usm, transport, context, *var_binds, **options))
-    return [result]
-
-
 def nextCmd(
     engine: SnmpEngine,
     usm: UsmUserData,
@@ -150,6 +137,47 @@ def _var_bind_to_dict(var_bind: Any) -> VarBindSuccess:
 
 
 # ---------------------------------------------------------------------------
+# Async internals — reusable from other async contexts (e.g. bulk_check).
+# The _*_cmd_async aliases above are the mock targets in tests.
+# ---------------------------------------------------------------------------
+
+
+async def _get(
+    engine: SnmpEngine,
+    host: str,
+    oid: str,
+    usm: UsmUserData,
+    transport: UdpTransportTarget,
+) -> VarBindResult:
+    """Async GET: fetch a single OID value."""
+    try:
+        error_indication, error_status, _, var_binds = await _get_cmd_async(
+            engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid))
+        )
+    except Exception as exc:
+        return {"error": str(exc), "host": host, "oid": oid}
+    if error_indication:
+        return {"error": str(error_indication), "host": host, "oid": oid}
+    if error_status:
+        return {"error": str(error_status), "host": host, "oid": oid}
+    return _var_bind_to_dict(var_binds[0])
+
+
+async def _get_with_transport(
+    host: str, oid: str, usm: UsmUserData, port: int, timeout: int, retries: int
+) -> VarBindResult:
+    """Self-contained async GET: creates engine + transport in one event loop."""
+    engine = SnmpEngine()
+    try:
+        transport = await UdpTransportTarget.create(
+            (host, port), timeout=timeout, retries=retries
+        )
+    except Exception as exc:
+        return {"error": str(exc), "host": host, "oid": oid}
+    return await _get(engine, host, oid, usm, transport)
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -163,20 +191,7 @@ def get(
     retries: int = 3,
 ) -> VarBindResult:
     """Fetch a single OID value."""
-    engine = SnmpEngine()
-    try:
-        transport = _transport(host, port, timeout, retries)
-    except Exception as exc:
-        return {"error": str(exc), "host": host, "oid": oid}
-    for error_indication, error_status, _, var_binds in getCmd(
-        engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid))
-    ):
-        if error_indication:
-            return {"error": str(error_indication), "host": host, "oid": oid}
-        if error_status:
-            return {"error": str(error_status), "host": host, "oid": oid}
-        return _var_bind_to_dict(var_binds[0])
-    return {"error": "No response", "host": host, "oid": oid}
+    return asyncio.run(_get_with_transport(host, oid, usm, port, timeout, retries))
 
 
 def getnext(

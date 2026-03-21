@@ -1,5 +1,5 @@
 # tests/test_query.py
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -23,18 +23,22 @@ def _mock_cmd_result(oid="1.3.6.1.2.1.1.1.0", value="Linux router"):
 
 
 class TestGet:
-    @patch("snmpv3_utils.core.query.getCmd")
-    def test_returns_dict_with_oid_and_value(self, mock_get, usm):
-        mock_get.return_value = iter(_mock_cmd_result())
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._get_cmd_async", new_callable=AsyncMock)
+    def test_returns_dict_with_oid_and_value(self, mock_get, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+        mock_get.return_value = _mock_cmd_result()[0]
         result = get("192.168.1.1", "1.3.6.1.2.1.1.1.0", usm)
         assert isinstance(result, dict)
         assert "oid" in result
         assert "value" in result
         assert set(result.keys()) == {"oid", "value"}
 
-    @patch("snmpv3_utils.core.query.getCmd")
-    def test_returns_error_dict_on_failure(self, mock_get, usm):
-        mock_get.return_value = iter([("Timeout", None, None, [])])
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._get_cmd_async", new_callable=AsyncMock)
+    def test_returns_error_dict_on_failure(self, mock_get, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+        mock_get.return_value = ("Timeout", None, None, [])
         result = get("192.168.1.1", "1.3.6.1.2.1.1.1.0", usm)
         assert "error" in result
         assert set(result.keys()) == {"error", "host", "oid"}
