@@ -22,13 +22,9 @@ from snmpv3_utils.security import (
 ProfileOpt = Annotated[str | None, typer.Option("--profile", "-p", help="Credential profile name")]
 FormatOpt = Annotated[OutputFormat, typer.Option("--format", "-f", help="Output format")]
 UsernameOpt = Annotated[str | None, typer.Option("--username", "-u", help="SNMPv3 username")]
-AuthProtoOpt = Annotated[
-    AuthProtocol | None, typer.Option("--auth-protocol", help="Auth protocol")
-]
+AuthProtoOpt = Annotated[AuthProtocol | None, typer.Option("--auth-protocol", help="Auth protocol")]
 AuthKeyOpt = Annotated[str | None, typer.Option("--auth-key", help="Auth passphrase")]
-PrivProtoOpt = Annotated[
-    PrivProtocol | None, typer.Option("--priv-protocol", help="Priv protocol")
-]
+PrivProtoOpt = Annotated[PrivProtocol | None, typer.Option("--priv-protocol", help="Priv protocol")]
 PrivKeyOpt = Annotated[str | None, typer.Option("--priv-key", help="Priv passphrase")]
 SecLevelOpt = Annotated[
     SecurityLevel | None, typer.Option("--security-level", help="Security level")
