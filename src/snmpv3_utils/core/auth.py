@@ -7,6 +7,7 @@ bulk_check: test all rows from a CSV credential file against a single host.
 
 import csv
 from pathlib import Path
+from typing import cast
 
 from pysnmp.hlapi.v3arch.asyncio import UsmUserData
 
@@ -18,7 +19,7 @@ from snmpv3_utils.security import (
     SecurityLevel,
     build_usm_user,
 )
-from snmpv3_utils.types import AuthResult
+from snmpv3_utils.types import AuthResult, VarBindError
 
 _SYSDESCR_OID = "1.3.6.1.2.1.1.1.0"
 
@@ -37,12 +38,8 @@ def check_creds(
     """
     result = get(host, _SYSDESCR_OID, usm, port=port, timeout=timeout, retries=retries)
     if "error" in result:
-        return {
-            "status": "failed",
-            "host": host,
-            "username": username,
-            "error": result["error"],  # type: ignore[typeddict-item]
-        }
+        err = cast(VarBindError, result)
+        return {"status": "failed", "host": host, "username": username, "error": err["error"]}
     return {"status": "ok", "host": host, "username": username, "sysdescr": result["value"]}
 
 

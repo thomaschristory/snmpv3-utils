@@ -298,7 +298,7 @@ def set_oid(
     }
     try:
         snmp_value = type_map[value_type]()
-    except Exception as exc:
+    except (ValueError, TypeError) as exc:
         return {"error": f"Invalid value for type '{value_type}': {exc}", "host": host, "oid": oid}
 
     engine = SnmpEngine()

@@ -1,6 +1,6 @@
 """Typed result dictionaries for SNMP operations."""
 
-from typing import Literal, TypedDict
+from typing import Literal, TypeAlias, TypedDict
 
 # --- Query operations (get, getnext, walk, bulk) ---
 
@@ -16,7 +16,7 @@ class VarBindError(TypedDict):
     oid: str
 
 
-VarBindResult = VarBindSuccess | VarBindError
+VarBindResult: TypeAlias = VarBindSuccess | VarBindError
 
 # --- Set operation ---
 
@@ -34,7 +34,7 @@ class SetError(TypedDict):
     oid: str
 
 
-SetResult = SetSuccess | SetError
+SetResult: TypeAlias = SetSuccess | SetError
 
 # --- Auth operations (check_creds, bulk_check) ---
 
@@ -53,7 +53,7 @@ class AuthError(TypedDict):
     error: str
 
 
-AuthResult = AuthSuccess | AuthError
+AuthResult: TypeAlias = AuthSuccess | AuthError
 
 # --- Trap operation ---
 
@@ -72,4 +72,4 @@ class TrapError(TypedDict):
     inform: bool
 
 
-TrapResult = TrapSuccess | TrapError
+TrapResult: TypeAlias = TrapSuccess | TrapError
