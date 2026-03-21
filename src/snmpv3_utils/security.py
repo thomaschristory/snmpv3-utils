@@ -9,7 +9,9 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 
 from pysnmp.hlapi.v3arch.asyncio import (
-    UsmUserData,
+    UsmUserData as UsmUserData,
+)
+from pysnmp.hlapi.v3arch.asyncio import (
     usmAesCfb128Protocol,
     usmAesCfb256Protocol,
     usmDESPrivProtocol,

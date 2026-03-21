@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Annotated
 import typer
 
 if TYPE_CHECKING:
-    from pysnmp.hlapi.v3arch.asyncio import UsmUserData
+    from snmpv3_utils.security import UsmUserData
 
 from snmpv3_utils.config import resolve_credentials
 from snmpv3_utils.output import OutputFormat
