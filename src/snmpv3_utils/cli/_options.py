@@ -5,9 +5,14 @@ All CLI subcommand modules import their credential-related Annotated types
 and the build_usm_from_cli helper from here to avoid duplication.
 """
 
-from typing import Annotated, Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Annotated
 
 import typer
+
+if TYPE_CHECKING:
+    from pysnmp.hlapi.v3arch.asyncio import UsmUserData
 
 from snmpv3_utils.config import resolve_credentials
 from snmpv3_utils.output import OutputFormat
@@ -45,7 +50,7 @@ def build_usm_from_cli(
     port: int | None,
     timeout: int | None,
     retries: int | None,
-) -> tuple[Any, Credentials]:
+) -> tuple[UsmUserData, Credentials]:
     """Resolve credentials from CLI options and build a USM user object."""
     overrides = {
         "username": username,
