@@ -10,8 +10,8 @@ runner = CliRunner()
 
 class TestTrapSend:
     @patch("snmpv3_utils.cli.trap.core_send_trap")
-    @patch("snmpv3_utils.cli.trap.resolve_credentials")
-    @patch("snmpv3_utils.cli.trap.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_send_returns_ok(self, mock_usm, mock_creds, mock_trap):
         from snmpv3_utils.security import Credentials
 
@@ -29,8 +29,8 @@ class TestTrapSend:
         assert "ok" in result.output
 
     @patch("snmpv3_utils.cli.trap.core_send_trap")
-    @patch("snmpv3_utils.cli.trap.resolve_credentials")
-    @patch("snmpv3_utils.cli.trap.build_usm_user")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_send_inform_flag(self, mock_usm, mock_creds, mock_trap):
         from snmpv3_utils.security import Credentials
 
