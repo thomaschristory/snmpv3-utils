@@ -1,6 +1,7 @@
 # src/snmpv3_utils/cli/auth.py
 """CLI commands for snmpv3 auth *."""
 
+import csv
 from pathlib import Path
 from typing import Annotated
 
@@ -79,6 +80,15 @@ def bulk(
     try:
         results = core_bulk_check(host, file)
     except FileNotFoundError as err:
-        typer.echo(f"File not found: {file}", err=True)
+        typer.echo(f"File not found: {file.resolve()}", err=True)
+        raise typer.Exit(1) from err
+    except PermissionError as err:
+        typer.echo(f"Permission denied: {file.resolve()}", err=True)
+        raise typer.Exit(1) from err
+    except IsADirectoryError as err:
+        typer.echo(f"Path is a directory, not a file: {file.resolve()}", err=True)
+        raise typer.Exit(1) from err
+    except csv.Error as err:
+        typer.echo(f"Failed to parse CSV file {file.resolve()}: {err}", err=True)
         raise typer.Exit(1) from err
     print_records(results, fmt=fmt)
