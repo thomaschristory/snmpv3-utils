@@ -76,8 +76,9 @@ def bulk(
 
     CSV format: username,auth_protocol,auth_key,priv_protocol,priv_key,security_level
     """
-    if not file.exists():
+    try:
+        results = core_bulk_check(host, file)
+    except FileNotFoundError as err:
         typer.echo(f"File not found: {file}", err=True)
-        raise typer.Exit(1)
-    results = core_bulk_check(host, file)
+        raise typer.Exit(1) from err
     print_records(results, fmt=fmt)
