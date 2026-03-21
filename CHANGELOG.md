@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-03-21
+
+### Fixed
+- Fix stale `_build_usm` docstring in `cli/_options.py` (#9)
+- Use `TYPE_CHECKING` guard for `UsmUserData` import in `cli/_options.py` (#11)
+- Re-export `UsmUserData` from `security.py` to maintain architecture boundary
+- Replace TOCTOU file check with `try/except` in auth bulk CLI (#12)
+- Widen error handling in `auth bulk` to catch `PermissionError`, `IsADirectoryError`, and `csv.Error`
+
+### Changed
+- Expand allowed commit prefixes to include `refactor:` and `style:` (#10)
+- Allow `fix/`, `docs/`, `chore/` branch name prefixes in addition to `feat/`
+
+### Added
+- Test coverage for `auth bulk` CLI command (file-not-found and success paths)
+
 ## [0.1.0] - 2026-03-20
 
 ### Added
