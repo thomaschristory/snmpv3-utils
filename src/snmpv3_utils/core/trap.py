@@ -167,9 +167,7 @@ async def _stress_loop(
     Duration mode (duration set): dispatch until elapsed >= duration seconds.
     """
     engine = SnmpEngine()
-    transport = await UdpTransportTarget.create(
-        (host, port), timeout=timeout, retries=retries
-    )
+    transport = await UdpTransportTarget.create((host, port), timeout=timeout, retries=retries)
     sem = asyncio.Semaphore(concurrency)
     tasks: list[asyncio.Task[str | None]] = []
     interval = 1.0 / rate if rate > 0 else 0
@@ -179,11 +177,7 @@ async def _stress_loop(
     if duration is not None:
         # Duration mode: loop until time exceeds duration
         while time.monotonic() - start < duration:
-            tasks.append(
-                asyncio.create_task(
-                    _send_one(engine, usm, transport, oid, inform, sem)
-                )
-            )
+            tasks.append(asyncio.create_task(_send_one(engine, usm, transport, oid, inform, sem)))
             if on_progress:
                 on_progress(len(tasks), total)
             if interval:
@@ -191,11 +185,7 @@ async def _stress_loop(
     else:
         # Count mode: dispatch exactly `count` tasks
         for _ in range(count):
-            tasks.append(
-                asyncio.create_task(
-                    _send_one(engine, usm, transport, oid, inform, sem)
-                )
-            )
+            tasks.append(asyncio.create_task(_send_one(engine, usm, transport, oid, inform, sem)))
             if on_progress:
                 on_progress(len(tasks), total)
             if interval:
@@ -263,8 +253,18 @@ def stress_trap(
     """
     return asyncio.run(
         _stress_loop(
-            host, usm, count, duration, rate, concurrency,
-            inform, port, timeout, retries, oid, on_progress,
+            host,
+            usm,
+            count,
+            duration,
+            rate,
+            concurrency,
+            inform,
+            port,
+            timeout,
+            retries,
+            oid,
+            on_progress,
         )
     )
 

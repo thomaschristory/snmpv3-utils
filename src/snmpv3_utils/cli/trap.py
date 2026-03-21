@@ -182,9 +182,7 @@ def stress(
             TextColumn("[green]{task.fields[rate]}/s"),
         )
         total_val = count if duration is None else None
-        task_id = progress.add_task(
-            f"Stress testing {host}", total=total_val, rate="0"
-        )
+        task_id = progress.add_task(f"Stress testing {host}", total=total_val, rate="0")
 
         start_time = __import__("time").monotonic()
 

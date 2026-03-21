@@ -95,14 +95,16 @@ class TestTrapStress:
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_stress.return_value = {
-            "host": "h", "sent": 10, "errors": 5,
-            "success_rate": "50.0%", "duration_s": 1.0,
-            "rate_achieved": 10.0, "error_samples": [],
+            "host": "h",
+            "sent": 10,
+            "errors": 5,
+            "success_rate": "50.0%",
+            "duration_s": 1.0,
+            "rate_achieved": 10.0,
+            "error_samples": [],
         }
 
-        result = runner.invoke(
-            app, ["trap", "stress", "h", "--count", "10", "--format", "json"]
-        )
+        result = runner.invoke(app, ["trap", "stress", "h", "--count", "10", "--format", "json"])
         assert result.exit_code == 0
 
     @patch("snmpv3_utils.cli.trap.core_stress_trap")
@@ -114,14 +116,16 @@ class TestTrapStress:
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_stress.return_value = {
-            "host": "h", "sent": 10, "errors": 10,
-            "success_rate": "0.0%", "duration_s": 1.0,
-            "rate_achieved": 10.0, "error_samples": ["err"],
+            "host": "h",
+            "sent": 10,
+            "errors": 10,
+            "success_rate": "0.0%",
+            "duration_s": 1.0,
+            "rate_achieved": 10.0,
+            "error_samples": ["err"],
         }
 
-        result = runner.invoke(
-            app, ["trap", "stress", "h", "--count", "10", "--format", "json"]
-        )
+        result = runner.invoke(app, ["trap", "stress", "h", "--count", "10", "--format", "json"])
         assert result.exit_code == 1
 
     @patch("snmpv3_utils.cli.trap.core_stress_trap")
@@ -133,12 +137,14 @@ class TestTrapStress:
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_stress.return_value = {
-            "host": "h", "sent": 0, "errors": 0,
-            "success_rate": "N/A", "duration_s": 0.0,
-            "rate_achieved": 0.0, "error_samples": [],
+            "host": "h",
+            "sent": 0,
+            "errors": 0,
+            "success_rate": "N/A",
+            "duration_s": 0.0,
+            "rate_achieved": 0.0,
+            "error_samples": [],
         }
 
-        result = runner.invoke(
-            app, ["trap", "stress", "h", "--count", "0", "--format", "json"]
-        )
+        result = runner.invoke(app, ["trap", "stress", "h", "--count", "0", "--format", "json"])
         assert result.exit_code == 1

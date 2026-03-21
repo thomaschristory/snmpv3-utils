@@ -54,8 +54,12 @@ class TestSendOne:
         mock_send.return_value = (None, None, None, [])
         sem = asyncio.Semaphore(10)
         result = await _send_one(
-            engine=object(), usm=object(), transport=object(),
-            oid="1.3.6.1.6.3.1.1.5.1", inform=False, sem=sem,
+            engine=object(),
+            usm=object(),
+            transport=object(),
+            oid="1.3.6.1.6.3.1.1.5.1",
+            inform=False,
+            sem=sem,
         )
         assert result is None
         mock_send.assert_called_once()
@@ -68,8 +72,12 @@ class TestSendOne:
         mock_send.return_value = ("RequestTimedOut", None, None, [])
         sem = asyncio.Semaphore(10)
         result = await _send_one(
-            engine=object(), usm=object(), transport=object(),
-            oid="1.3.6.1.6.3.1.1.5.1", inform=False, sem=sem,
+            engine=object(),
+            usm=object(),
+            transport=object(),
+            oid="1.3.6.1.6.3.1.1.5.1",
+            inform=False,
+            sem=sem,
         )
         assert result == "RequestTimedOut"
 
@@ -81,8 +89,12 @@ class TestSendOne:
         mock_send.return_value = (None, "genErr", None, [])
         sem = asyncio.Semaphore(10)
         result = await _send_one(
-            engine=object(), usm=object(), transport=object(),
-            oid="1.3.6.1.6.3.1.1.5.1", inform=False, sem=sem,
+            engine=object(),
+            usm=object(),
+            transport=object(),
+            oid="1.3.6.1.6.3.1.1.5.1",
+            inform=False,
+            sem=sem,
         )
         assert result == "genErr"
 
@@ -94,8 +106,12 @@ class TestSendOne:
         mock_send.return_value = (None, None, None, [])
         sem = asyncio.Semaphore(10)
         await _send_one(
-            engine=object(), usm=object(), transport=object(),
-            oid="1.3.6.1.6.3.1.1.5.1", inform=True, sem=sem,
+            engine=object(),
+            usm=object(),
+            transport=object(),
+            oid="1.3.6.1.6.3.1.1.5.1",
+            inform=True,
+            sem=sem,
         )
         call_args = mock_send.call_args
         assert call_args[0][4] == "inform"
@@ -159,7 +175,13 @@ class TestStressTrap:
         mock_transport.create = AsyncMock(return_value=MagicMock())
         result = stress_trap("192.168.1.1", usm=MagicMock(), count=1, rate=0)
         expected_keys = {
-            "host", "sent", "errors", "success_rate", "duration_s", "rate_achieved", "error_samples"
+            "host",
+            "sent",
+            "errors",
+            "success_rate",
+            "duration_s",
+            "rate_achieved",
+            "error_samples",
         }
         assert set(result.keys()) == expected_keys
 
@@ -170,7 +192,10 @@ class TestStressTrap:
         mock_transport.create = AsyncMock(return_value=MagicMock())
         progress_calls = []
         stress_trap(
-            "192.168.1.1", usm=MagicMock(), count=5, rate=0,
+            "192.168.1.1",
+            usm=MagicMock(),
+            count=5,
+            rate=0,
             on_progress=lambda dispatched, total: progress_calls.append((dispatched, total)),
         )
         assert len(progress_calls) == 5
