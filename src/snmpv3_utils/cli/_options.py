@@ -2,12 +2,17 @@
 """Shared CLI option type aliases and credential helpers.
 
 All CLI subcommand modules import their credential-related Annotated types
-and the _build_usm helper from here to avoid duplication.
+and the build_usm_from_cli helper from here to avoid duplication.
 """
 
-from typing import Annotated, Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Annotated
 
 import typer
+
+if TYPE_CHECKING:
+    from snmpv3_utils.security import UsmUserData
 
 from snmpv3_utils.config import resolve_credentials
 from snmpv3_utils.output import OutputFormat
@@ -45,7 +50,7 @@ def build_usm_from_cli(
     port: int | None,
     timeout: int | None,
     retries: int | None,
-) -> tuple[Any, Credentials]:
+) -> tuple[UsmUserData, Credentials]:
     """Resolve credentials from CLI options and build a USM user object."""
     overrides = {
         "username": username,
