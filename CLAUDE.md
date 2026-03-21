@@ -38,7 +38,7 @@ uv sync --all-extras
 - All work starts with a GitHub Issue
 - Branch from `main`, name: `feat/<issue-number>-<short-description>`
 - PRs require CI to pass (ruff, mypy, pytest)
-- Conventional commits required: `feat:`, `fix:`, `docs:`, `chore:`, `test:`
+- Conventional commits required: `feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`, `style:`
 
 ## pysnmp v7 Notes
 
