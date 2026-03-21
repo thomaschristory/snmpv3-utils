@@ -2,7 +2,7 @@
 """Shared CLI option type aliases and credential helpers.
 
 All CLI subcommand modules import their credential-related Annotated types
-and the _build_usm helper from here to avoid duplication.
+and the build_usm_from_cli helper from here to avoid duplication.
 """
 
 from typing import Annotated, Any
