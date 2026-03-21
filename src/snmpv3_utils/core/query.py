@@ -37,97 +37,6 @@ from pysnmp.hlapi.v3arch.asyncio import (
 from snmpv3_utils.types import SetResult, VarBindResult, VarBindSuccess
 
 # ---------------------------------------------------------------------------
-# Sync wrappers around the async pysnmp v7 API.
-# These names are patched in tests, so they must be module-level names.
-# ---------------------------------------------------------------------------
-
-
-def nextCmd(
-    engine: SnmpEngine,
-    usm: UsmUserData,
-    transport: UdpTransportTarget,
-    context: ContextData,
-    *var_binds: ObjectType,
-    **options: Any,
-) -> list[tuple[Any, Any, Any, Any]]:
-    """Sync wrapper: run async next_cmd via asyncio.run()."""
-    result = asyncio.run(_next_cmd_async(engine, usm, transport, context, *var_binds, **options))
-    return [result]
-
-
-def setCmd(
-    engine: SnmpEngine,
-    usm: UsmUserData,
-    transport: UdpTransportTarget,
-    context: ContextData,
-    *var_binds: ObjectType,
-    **options: Any,
-) -> list[tuple[Any, Any, Any, Any]]:
-    """Sync wrapper: run async set_cmd via asyncio.run()."""
-    result = asyncio.run(_set_cmd_async(engine, usm, transport, context, *var_binds, **options))
-    return [result]
-
-
-def walkCmd(
-    engine: SnmpEngine,
-    usm: UsmUserData,
-    transport: UdpTransportTarget,
-    context: ContextData,
-    var_bind: ObjectType,
-    **options: Any,
-) -> list[tuple[Any, Any, Any, Any]]:
-    """Sync wrapper: collect all results from async walk_cmd generator."""
-
-    async def _collect() -> list[tuple[Any, Any, Any, Any]]:
-        results = []
-        async for item in _walk_cmd_async(engine, usm, transport, context, var_bind, **options):
-            results.append(item)
-        return results
-
-    return asyncio.run(_collect())
-
-
-def bulkCmd(
-    engine: SnmpEngine,
-    usm: UsmUserData,
-    transport: UdpTransportTarget,
-    context: ContextData,
-    non_repeaters: int,
-    max_repetitions: int,
-    *var_binds: ObjectType,
-    **options: Any,
-) -> list[tuple[Any, Any, Any, Any]]:
-    """Sync wrapper: run async bulk_cmd via asyncio.run().
-
-    bulk_cmd is a coroutine (not an async generator), unlike walk_cmd which is
-    an async generator. Therefore asyncio.run() is correct here rather than the
-    'async for' pattern used in walkCmd.
-    """
-    result = asyncio.run(
-        _bulk_cmd_async(
-            engine,
-            usm,
-            transport,
-            context,
-            non_repeaters,
-            max_repetitions,
-            *var_binds,
-            **options,
-        )
-    )
-    return [result]
-
-
-# ---------------------------------------------------------------------------
-# Transport helper
-# ---------------------------------------------------------------------------
-
-
-def _transport(host: str, port: int, timeout: int, retries: int) -> UdpTransportTarget:
-    return asyncio.run(UdpTransportTarget.create((host, port), timeout=timeout, retries=retries))
-
-
-# ---------------------------------------------------------------------------
 # Var-bind helper
 # ---------------------------------------------------------------------------
 
@@ -169,12 +78,173 @@ async def _get_with_transport(
     """Self-contained async GET: creates engine + transport in one event loop."""
     engine = SnmpEngine()
     try:
-        transport = await UdpTransportTarget.create(
-            (host, port), timeout=timeout, retries=retries
-        )
+        transport = await UdpTransportTarget.create((host, port), timeout=timeout, retries=retries)
     except Exception as exc:
         return {"error": str(exc), "host": host, "oid": oid}
     return await _get(engine, host, oid, usm, transport)
+
+
+async def _getnext(
+    engine: SnmpEngine,
+    host: str,
+    oid: str,
+    usm: UsmUserData,
+    transport: UdpTransportTarget,
+) -> VarBindResult:
+    """Async GETNEXT: return the next OID after the given one."""
+    try:
+        error_indication, error_status, _, var_binds = await _next_cmd_async(
+            engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid))
+        )
+    except Exception as exc:
+        return {"error": str(exc), "host": host, "oid": oid}
+    if error_indication:
+        return {"error": str(error_indication), "host": host, "oid": oid}
+    if error_status:
+        return {"error": str(error_status), "host": host, "oid": oid}
+    return _var_bind_to_dict(var_binds[0])
+
+
+async def _getnext_with_transport(
+    host: str, oid: str, usm: UsmUserData, port: int, timeout: int, retries: int
+) -> VarBindResult:
+    engine = SnmpEngine()
+    try:
+        transport = await UdpTransportTarget.create((host, port), timeout=timeout, retries=retries)
+    except Exception as exc:
+        return {"error": str(exc), "host": host, "oid": oid}
+    return await _getnext(engine, host, oid, usm, transport)
+
+
+async def _walk(
+    engine: SnmpEngine,
+    host: str,
+    oid: str,
+    usm: UsmUserData,
+    transport: UdpTransportTarget,
+) -> list[VarBindResult]:
+    """Async WALK: traverse subtree via repeated GETNEXT."""
+    results: list[VarBindResult] = []
+    async for error_indication, error_status, _, var_binds in _walk_cmd_async(
+        engine,
+        usm,
+        transport,
+        ContextData(),
+        ObjectType(ObjectIdentity(oid)),
+        lexicographicMode=False,
+    ):
+        if error_indication or error_status:
+            results.append(
+                {"error": str(error_indication or error_status), "host": host, "oid": oid}
+            )
+            break
+        for vb in var_binds:
+            results.append(_var_bind_to_dict(vb))
+    return results
+
+
+async def _walk_with_transport(
+    host: str, oid: str, usm: UsmUserData, port: int, timeout: int, retries: int
+) -> list[VarBindResult]:
+    engine = SnmpEngine()
+    try:
+        transport = await UdpTransportTarget.create((host, port), timeout=timeout, retries=retries)
+    except Exception as exc:
+        return [{"error": str(exc), "host": host, "oid": oid}]
+    return await _walk(engine, host, oid, usm, transport)
+
+
+async def _bulk(
+    engine: SnmpEngine,
+    host: str,
+    oid: str,
+    usm: UsmUserData,
+    transport: UdpTransportTarget,
+    max_repetitions: int = 25,
+) -> list[VarBindResult]:
+    """Async GETBULK retrieval."""
+    try:
+        error_indication, error_status, _, var_binds = await _bulk_cmd_async(
+            engine,
+            usm,
+            transport,
+            ContextData(),
+            0,
+            max_repetitions,
+            ObjectType(ObjectIdentity(oid)),
+            lexicographicMode=False,
+        )
+    except Exception as exc:
+        return [{"error": str(exc), "host": host, "oid": oid}]
+    results: list[VarBindResult] = []
+    if error_indication or error_status:
+        results.append({"error": str(error_indication or error_status), "host": host, "oid": oid})
+    else:
+        for vb in var_binds:
+            results.append(_var_bind_to_dict(vb))
+    return results
+
+
+async def _bulk_with_transport(
+    host: str,
+    oid: str,
+    usm: UsmUserData,
+    port: int,
+    timeout: int,
+    retries: int,
+    max_repetitions: int = 25,
+) -> list[VarBindResult]:
+    engine = SnmpEngine()
+    try:
+        transport = await UdpTransportTarget.create((host, port), timeout=timeout, retries=retries)
+    except Exception as exc:
+        return [{"error": str(exc), "host": host, "oid": oid}]
+    return await _bulk(engine, host, oid, usm, transport, max_repetitions)
+
+
+async def _set_oid(
+    engine: SnmpEngine,
+    host: str,
+    oid: str,
+    snmp_value: Any,
+    value: str,
+    usm: UsmUserData,
+    transport: UdpTransportTarget,
+) -> SetResult:
+    """Async SET: set an OID to a value."""
+    try:
+        error_indication, error_status, _, _ = await _set_cmd_async(
+            engine,
+            usm,
+            transport,
+            ContextData(),
+            ObjectType(ObjectIdentity(oid), snmp_value),
+        )
+    except Exception as exc:
+        return {"error": str(exc), "host": host, "oid": oid}
+    if error_indication:
+        return {"error": str(error_indication), "host": host, "oid": oid}
+    if error_status:
+        return {"error": str(error_status), "host": host, "oid": oid}
+    return {"status": "ok", "host": host, "oid": oid, "value": value}
+
+
+async def _set_oid_with_transport(
+    host: str,
+    oid: str,
+    snmp_value: Any,
+    value: str,
+    usm: UsmUserData,
+    port: int,
+    timeout: int,
+    retries: int,
+) -> SetResult:
+    engine = SnmpEngine()
+    try:
+        transport = await UdpTransportTarget.create((host, port), timeout=timeout, retries=retries)
+    except Exception as exc:
+        return {"error": str(exc), "host": host, "oid": oid}
+    return await _set_oid(engine, host, oid, snmp_value, value, usm, transport)
 
 
 # ---------------------------------------------------------------------------
@@ -203,20 +273,7 @@ def getnext(
     retries: int = 3,
 ) -> VarBindResult:
     """Return the next OID after the given one (single GETNEXT step)."""
-    engine = SnmpEngine()
-    try:
-        transport = _transport(host, port, timeout, retries)
-    except Exception as exc:
-        return {"error": str(exc), "host": host, "oid": oid}
-    for error_indication, error_status, _, var_binds in nextCmd(
-        engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid))
-    ):
-        if error_indication:
-            return {"error": str(error_indication), "host": host, "oid": oid}
-        if error_status:
-            return {"error": str(error_status), "host": host, "oid": oid}
-        return _var_bind_to_dict(var_binds[0])
-    return {"error": "No response", "host": host, "oid": oid}
+    return asyncio.run(_getnext_with_transport(host, oid, usm, port, timeout, retries))
 
 
 def walk(
@@ -228,28 +285,7 @@ def walk(
     retries: int = 3,
 ) -> list[VarBindResult]:
     """Traverse the subtree rooted at oid via repeated GETNEXT."""
-    engine = SnmpEngine()
-    try:
-        transport = _transport(host, port, timeout, retries)
-    except Exception as exc:
-        return [{"error": str(exc), "host": host, "oid": oid}]
-    results: list[VarBindResult] = []
-    for error_indication, error_status, _, var_binds in walkCmd(
-        engine,
-        usm,
-        transport,
-        ContextData(),
-        ObjectType(ObjectIdentity(oid)),
-        lexicographicMode=False,
-    ):
-        if error_indication or error_status:
-            results.append(
-                {"error": str(error_indication or error_status), "host": host, "oid": oid}
-            )
-            break
-        for vb in var_binds:
-            results.append(_var_bind_to_dict(vb))
-    return results
+    return asyncio.run(_walk_with_transport(host, oid, usm, port, timeout, retries))
 
 
 def bulk(
@@ -262,30 +298,9 @@ def bulk(
     max_repetitions: int = 25,
 ) -> list[VarBindResult]:
     """GETBULK retrieval."""
-    engine = SnmpEngine()
-    try:
-        transport = _transport(host, port, timeout, retries)
-    except Exception as exc:
-        return [{"error": str(exc), "host": host, "oid": oid}]
-    results: list[VarBindResult] = []
-    for error_indication, error_status, _, var_binds in bulkCmd(
-        engine,
-        usm,
-        transport,
-        ContextData(),
-        0,
-        max_repetitions,
-        ObjectType(ObjectIdentity(oid)),
-        lexicographicMode=False,
-    ):
-        if error_indication or error_status:
-            results.append(
-                {"error": str(error_indication or error_status), "host": host, "oid": oid}
-            )
-            break
-        for vb in var_binds:
-            results.append(_var_bind_to_dict(vb))
-    return results
+    return asyncio.run(
+        _bulk_with_transport(host, oid, usm, port, timeout, retries, max_repetitions)
+    )
 
 
 def set_oid(
@@ -316,21 +331,6 @@ def set_oid(
     except (ValueError, TypeError) as exc:
         return {"error": f"Invalid value for type '{value_type}': {exc}", "host": host, "oid": oid}
 
-    engine = SnmpEngine()
-    try:
-        transport = _transport(host, port, timeout, retries)
-    except Exception as exc:
-        return {"error": str(exc), "host": host, "oid": oid}
-    for error_indication, error_status, _, _ in setCmd(
-        engine,
-        usm,
-        transport,
-        ContextData(),
-        ObjectType(ObjectIdentity(oid), snmp_value),
-    ):
-        if error_indication:
-            return {"error": str(error_indication), "host": host, "oid": oid}
-        if error_status:
-            return {"error": str(error_status), "host": host, "oid": oid}
-        return {"status": "ok", "host": host, "oid": oid, "value": value}
-    return {"error": "No response", "host": host, "oid": oid}
+    return asyncio.run(
+        _set_oid_with_transport(host, oid, snmp_value, value, usm, port, timeout, retries)
+    )

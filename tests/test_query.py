@@ -45,9 +45,11 @@ class TestGet:
 
 
 class TestGetnext:
-    @patch("snmpv3_utils.core.query.nextCmd")
-    def test_returns_dict_with_next_oid(self, mock_next, usm):
-        mock_next.return_value = iter(_mock_cmd_result(oid="1.3.6.1.2.1.1.2.0"))
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._next_cmd_async", new_callable=AsyncMock)
+    def test_returns_dict_with_next_oid(self, mock_next, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+        mock_next.return_value = _mock_cmd_result(oid="1.3.6.1.2.1.1.2.0")[0]
         result = getnext("192.168.1.1", "1.3.6.1.2.1.1.1.0", usm)
         assert isinstance(result, dict)
         assert "oid" in result
@@ -55,40 +57,49 @@ class TestGetnext:
 
 
 class TestWalk:
-    @patch("snmpv3_utils.core.query.walkCmd")
-    def test_returns_list_of_dicts(self, mock_walk, usm):
-        mock_walk.return_value = iter(
-            [
-                (None, None, None, _mock_cmd_result("1.3.6.1.2.1.1.1.0", "Linux")[0][3]),
-                (None, None, None, _mock_cmd_result("1.3.6.1.2.1.1.2.0", "sysObjectID")[0][3]),
-            ]
-        )
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._walk_cmd_async")
+    def test_returns_list_of_dicts(self, mock_walk, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+
+        async def _async_gen(*args, **kwargs):
+            yield (None, None, None, _mock_cmd_result("1.3.6.1.2.1.1.1.0", "Linux")[0][3])
+            yield (None, None, None, _mock_cmd_result("1.3.6.1.2.1.1.2.0", "sysObjectID")[0][3])
+
+        mock_walk.return_value = _async_gen()
         results = walk("192.168.1.1", "1.3.6.1.2.1.1", usm)
         assert isinstance(results, list)
         assert all(set(r.keys()) == {"oid", "value"} for r in results)
 
-    @patch("snmpv3_utils.core.query.walkCmd")
-    def test_empty_walk_returns_empty_list(self, mock_walk, usm):
-        mock_walk.return_value = iter([])
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._walk_cmd_async")
+    def test_empty_walk_returns_empty_list(self, mock_walk, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+
+        async def _async_gen(*args, **kwargs):
+            return
+            yield  # make it an async generator
+
+        mock_walk.return_value = _async_gen()
         results = walk("192.168.1.1", "1.3.6.1.2.1.99", usm)
         assert results == []
 
 
 class TestBulk:
-    @patch("snmpv3_utils.core.query.bulkCmd")
-    def test_returns_list_of_dicts(self, mock_bulk, usm):
-        mock_bulk.return_value = iter(
-            [
-                (None, None, None, _mock_cmd_result()[0][3]),
-            ]
-        )
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._bulk_cmd_async", new_callable=AsyncMock)
+    def test_returns_list_of_dicts(self, mock_bulk, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+        mock_bulk.return_value = _mock_cmd_result()[0]
         results = bulk("192.168.1.1", "1.3.6.1.2.1.1", usm)
         assert isinstance(results, list)
         assert all(set(r.keys()) == {"oid", "value"} for r in results)
 
-    @patch("snmpv3_utils.core.query.bulkCmd")
-    def test_returns_error_on_failure(self, mock_bulk, usm):
-        mock_bulk.return_value = iter([("Timeout", None, None, [])])
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._bulk_cmd_async", new_callable=AsyncMock)
+    def test_returns_error_on_failure(self, mock_bulk, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+        mock_bulk.return_value = ("Timeout", None, None, [])
         results = bulk("192.168.1.1", "1.3.6.1.2.1.1", usm)
         assert len(results) == 1
         assert "error" in results[0]
@@ -96,16 +107,20 @@ class TestBulk:
 
 
 class TestSet:
-    @patch("snmpv3_utils.core.query.setCmd")
-    def test_returns_success_dict(self, mock_set, usm):
-        mock_set.return_value = iter([(None, None, None, [])])
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._set_cmd_async", new_callable=AsyncMock)
+    def test_returns_success_dict(self, mock_set, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+        mock_set.return_value = (None, None, None, [])
         result = set_oid("192.168.1.1", "1.3.6.1.2.1.1.5.0", "myrouter", "str", usm)
         assert result.get("status") == "ok"
         assert set(result.keys()) == {"status", "host", "oid", "value"}
 
-    @patch("snmpv3_utils.core.query.setCmd")
-    def test_returns_error_on_failure(self, mock_set, usm):
-        mock_set.return_value = iter([("noSuchObject", None, None, [])])
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._set_cmd_async", new_callable=AsyncMock)
+    def test_returns_error_on_failure(self, mock_set, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+        mock_set.return_value = ("noSuchObject", None, None, [])
         result = set_oid("192.168.1.1", "1.3.6.1.2.1.1.5.0", "x", "str", usm)
         assert "error" in result
         assert set(result.keys()) == {"error", "host", "oid"}
