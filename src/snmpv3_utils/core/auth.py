@@ -37,14 +37,13 @@ def check_creds(
     """
     result = get(host, _SYSDESCR_OID, usm, port=port, timeout=timeout, retries=retries)
     if "error" in result:
-        error_msg = str(result.get("error"))
-        return {"status": "failed", "host": host, "username": username, "error": error_msg}
-    return {
-        "status": "ok",
-        "host": host,
-        "username": username,
-        "sysdescr": str(result.get("value")),
-    }
+        return {
+            "status": "failed",
+            "host": host,
+            "username": username,
+            "error": result["error"],  # type: ignore[typeddict-item]
+        }
+    return {"status": "ok", "host": host, "username": username, "sysdescr": result["value"]}
 
 
 def bulk_check(host: str, csv_path: Path) -> list[AuthResult]:
