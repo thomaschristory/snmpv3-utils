@@ -320,6 +320,40 @@ class TestBulkCheckConcurrency:
         assert all(r["status"] == "ok" for r in results)
         assert peak <= 2
 
+    @patch("snmpv3_utils.core.auth.UdpTransportTarget.create", new_callable=AsyncMock)
+    def test_transport_failure_returns_all_failed(self, mock_transport, tmp_path):
+        """When transport creation fails, every CSV row gets a failed result."""
+        mock_transport.side_effect = OSError("DNS resolution failed")
+        csv_content = self._make_csv(
+            [
+                {
+                    "username": "user1",
+                    "auth_protocol": "",
+                    "auth_key": "",
+                    "priv_protocol": "",
+                    "priv_key": "",
+                    "security_level": "noAuthNoPriv",
+                },
+                {
+                    "username": "user2",
+                    "auth_protocol": "",
+                    "auth_key": "",
+                    "priv_protocol": "",
+                    "priv_key": "",
+                    "security_level": "noAuthNoPriv",
+                },
+            ]
+        )
+        csv_path = tmp_path / "creds.csv"
+        csv_path.write_text(csv_content)
+
+        results = bulk_check("192.168.1.1", csv_path)
+        assert len(results) == 2
+        assert all(r["status"] == "failed" for r in results)
+        assert results[0]["username"] == "user1"
+        assert results[1]["username"] == "user2"
+        assert "DNS resolution failed" in results[0]["error"]
+
 
 class TestParseRowToUsm:
     def test_valid_authpriv_row(self):

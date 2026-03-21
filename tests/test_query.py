@@ -43,6 +43,23 @@ class TestGet:
         assert "error" in result
         assert set(result.keys()) == {"error", "host", "oid"}
 
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    def test_returns_error_on_transport_failure(self, mock_transport, usm):
+        mock_transport.side_effect = OSError("Connection refused")
+        result = get("192.168.1.1", "1.3.6.1.2.1.1.1.0", usm)
+        assert "error" in result
+        assert "Connection refused" in result["error"]
+        assert set(result.keys()) == {"error", "host", "oid"}
+
+    @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
+    @patch("snmpv3_utils.core.query._get_cmd_async", new_callable=AsyncMock)
+    def test_returns_error_on_exception(self, mock_get, mock_transport, usm):
+        mock_transport.return_value = MagicMock()
+        mock_get.side_effect = RuntimeError("socket closed")
+        result = get("192.168.1.1", "1.3.6.1.2.1.1.1.0", usm)
+        assert "error" in result
+        assert "socket closed" in result["error"]
+
 
 class TestGetnext:
     @patch("snmpv3_utils.core.query.UdpTransportTarget.create", new_callable=AsyncMock)
