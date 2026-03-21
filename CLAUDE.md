@@ -47,3 +47,7 @@ uv sync --all-extras
 - Priv constants: `usmDESPrivProtocol`, `usmAesCfb128Protocol`, `usmAesCfb256Protocol`
 - All SNMP operations are async in v7 — core/ wraps them with `asyncio.run()`
 - Trap listener requires asyncio (v7 removed asyncore dispatcher) — see `core/trap.py`
+
+## Session Guidelines
+
+- **Save state to memory** after completing each major task (PR merged, feature implemented, review done, etc.) and before ending a session. Update the project memory file with: merged PRs, new issues, architecture changes, and any decisions made. Don't wait until the end — context can get large and compress, losing details.
