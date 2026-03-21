@@ -95,15 +95,18 @@ async def _bulk_check_async(
     retries: int = 1,
 ) -> list[AuthResult]:
     """Async bulk credential check with optional concurrency limit."""
+    if max_concurrent is not None and max_concurrent < 1:
+        raise ValueError("max_concurrent must be a positive integer or None")
+
     from pysnmp.hlapi.v3arch.asyncio import SnmpEngine
+
+    with open(csv_path, newline="") as f:
+        rows = list(csv.DictReader(f))
 
     engine = SnmpEngine()
     try:
         transport = await UdpTransportTarget.create((host, port), timeout=timeout, retries=retries)
     except Exception as exc:
-        # Transport creation failed — return all-failed for every CSV row
-        with open(csv_path, newline="") as f:
-            rows = list(csv.DictReader(f))
         return [
             {
                 "status": "failed",
@@ -115,9 +118,6 @@ async def _bulk_check_async(
         ]
 
     sem = asyncio.Semaphore(max_concurrent) if max_concurrent else None
-
-    with open(csv_path, newline="") as f:
-        rows = list(csv.DictReader(f))
 
     results: list[AuthResult | None] = [None] * len(rows)
     tasks: list[tuple[int, asyncio.Task[AuthResult]]] = []
