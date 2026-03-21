@@ -17,6 +17,7 @@ class TestSendTrap:
         mock_send.return_value = iter([(None, None, None, [])])
         result = send_trap("192.168.1.1", usm, inform=False)
         assert result.get("status") == "ok"
+        assert set(result.keys()) == {"status", "host", "type", "inform"}
 
     @patch("snmpv3_utils.core.trap.sendNotification")
     def test_send_inform_returns_ok(self, mock_send, usm):
@@ -24,12 +25,14 @@ class TestSendTrap:
         result = send_trap("192.168.1.1", usm, inform=True)
         assert result.get("status") == "ok"
         assert result.get("inform") is True
+        assert set(result.keys()) == {"status", "host", "type", "inform"}
 
     @patch("snmpv3_utils.core.trap.sendNotification")
     def test_send_trap_returns_error_on_failure(self, mock_send, usm):
         mock_send.return_value = iter([("RequestTimedOut", None, None, [])])
         result = send_trap("192.168.1.1", usm, inform=False)
         assert "error" in result
+        assert set(result.keys()) == {"error", "host", "type", "inform"}
 
     @patch("snmpv3_utils.core.trap.sendNotification")
     def test_send_trap_returns_error_on_no_response(self, mock_send, usm):
@@ -38,3 +41,4 @@ class TestSendTrap:
         assert "error" in result
         assert result.get("type") == "trap"
         assert result.get("inform") is False
+        assert set(result.keys()) == {"error", "host", "type", "inform"}

@@ -25,6 +25,8 @@ from pysnmp.hlapi.v3arch.asyncio import (
     send_notification as _async_send_notification,
 )
 
+from snmpv3_utils.types import TrapResult
+
 
 def sendNotification(  # noqa: N802  (matches pysnmp camelCase convention)
     engine: SnmpEngine,
@@ -76,7 +78,7 @@ def send_trap(
     timeout: int = 5,
     retries: int = 3,
     oid: str = "1.3.6.1.6.3.1.1.5.1",  # coldStart
-) -> dict[str, Any]:
+) -> TrapResult:
     """Send an SNMPv3 trap or inform.
 
     inform=False: fire-and-forget (no acknowledgment expected).
