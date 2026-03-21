@@ -287,5 +287,5 @@ def listen(
     """
     raise NotImplementedError(
         "Trap listener requires pysnmp v7 asyncio integration. "
-        "See docs/superpowers/specs/2026-03-20-snmpv3-utils-design.md for context."
+        "See docs/architecture.md for context."
     )
