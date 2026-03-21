@@ -20,6 +20,8 @@ class TestCheckCreds:
         result = check_creds("192.168.1.1", usm)
         assert result["status"] == "ok"
         assert result["host"] == "192.168.1.1"
+        assert set(result.keys()) == {"status", "host", "username", "sysdescr"}
+        assert isinstance(result["sysdescr"], str)
 
     @patch("snmpv3_utils.core.auth.get")
     def test_failure_when_get_returns_error(self, mock_get, usm):
@@ -27,6 +29,7 @@ class TestCheckCreds:
         result = check_creds("192.168.1.1", usm)
         assert result["status"] == "failed"
         assert "error" in result
+        assert set(result.keys()) == {"status", "host", "username", "error"}
 
 
 class TestBulkCheck:
@@ -50,8 +53,8 @@ class TestBulkCheck:
     @patch("snmpv3_utils.core.auth.check_creds")
     def test_bulk_returns_result_per_row(self, mock_check, tmp_path):
         mock_check.side_effect = [
-            {"status": "ok", "host": "192.168.1.1", "username": "admin"},
-            {"status": "failed", "host": "192.168.1.1", "username": "wrong"},
+            {"status": "ok", "host": "192.168.1.1", "username": "admin", "sysdescr": "Linux"},
+            {"status": "failed", "host": "192.168.1.1", "username": "wrong", "error": "wrongDigest"},
         ]
         csv_content = self._make_csv(
             [
@@ -80,6 +83,7 @@ class TestBulkCheck:
         assert len(results) == 2
         assert results[0]["status"] == "ok"
         assert results[1]["status"] == "failed"
+        assert all(set(r.keys()) in ({"status", "host", "username", "sysdescr"}, {"status", "host", "username", "error"}) for r in results)
 
     def test_bulk_returns_failed_on_invalid_credentials(self, tmp_path):
         """Rows with invalid credential combinations return status=failed without raising."""

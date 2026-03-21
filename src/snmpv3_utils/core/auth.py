@@ -7,7 +7,6 @@ bulk_check: test all rows from a CSV credential file against a single host.
 
 import csv
 from pathlib import Path
-from typing import Any
 
 from pysnmp.hlapi.v3arch.asyncio import UsmUserData
 
@@ -19,6 +18,7 @@ from snmpv3_utils.security import (
     SecurityLevel,
     build_usm_user,
 )
+from snmpv3_utils.types import AuthResult
 
 _SYSDESCR_OID = "1.3.6.1.2.1.1.1.0"
 
@@ -30,7 +30,7 @@ def check_creds(
     timeout: int = 5,
     retries: int = 1,
     username: str = "",
-) -> dict[str, Any]:
+) -> AuthResult:
     """Test credentials by performing a GET on sysDescr.
 
     Returns {"status": "ok", ...} or {"status": "failed", "error": ..., ...}.
@@ -38,16 +38,16 @@ def check_creds(
     result = get(host, _SYSDESCR_OID, usm, port=port, timeout=timeout, retries=retries)
     if "error" in result:
         return {"status": "failed", "host": host, "username": username, "error": result["error"]}
-    return {"status": "ok", "host": host, "username": username, "sysdescr": result.get("value")}
+    return {"status": "ok", "host": host, "username": username, "sysdescr": result["value"]}
 
 
-def bulk_check(host: str, csv_path: Path) -> list[dict[str, Any]]:
+def bulk_check(host: str, csv_path: Path) -> list[AuthResult]:
     """Test every credential row in a CSV against a single host.
 
     CSV format: username,auth_protocol,auth_key,priv_protocol,priv_key,security_level
     Returns a list of check_creds results, one per row.
     """
-    results = []
+    results: list[AuthResult] = []
     with open(csv_path, newline="") as f:
         for row in csv.DictReader(f):
             try:
