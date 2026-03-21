@@ -115,6 +115,34 @@ def send_trap(
     return {"error": "No response", "host": host, "type": notification_type, "inform": inform}
 
 
+async def _send_one(
+    engine: SnmpEngine,
+    usm: UsmUserData,
+    transport: UdpTransportTarget,
+    oid: str,
+    inform: bool,
+    sem: asyncio.Semaphore,
+) -> str | None:
+    """Send a single trap/inform under semaphore control.
+
+    Returns error string on failure, None on success.
+    """
+    async with sem:
+        error_indication, error_status, _, _ = await _async_send_notification(
+            engine,
+            usm,
+            transport,
+            ContextData(),
+            "inform" if inform else "trap",
+            NotificationType(ObjectIdentity(oid)),
+        )
+        if error_indication:
+            return str(error_indication)
+        if error_status:
+            return str(error_status)
+        return None
+
+
 def listen(
     port: int,
     usm: UsmUserData,
