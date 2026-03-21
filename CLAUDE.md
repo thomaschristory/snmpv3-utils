@@ -36,7 +36,7 @@ uv sync --all-extras
 ## PR & Issue Workflow
 
 - All work starts with a GitHub Issue
-- Branch from `main`, name: `feat/<issue-number>-<short-description>`
+- Branch from `main`, name: `<type>/<issue-number>-<short-description>` (e.g. `feat/`, `fix/`, `docs/`, `chore/`)
 - PRs require CI to pass (ruff, mypy, pytest)
 - Conventional commits required: `feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`, `style:`
 
