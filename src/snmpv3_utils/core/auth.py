@@ -145,11 +145,19 @@ async def _bulk_check_async(
         tasks.append((i, asyncio.create_task(_check_one())))
 
     if tasks:
-        gathered = await asyncio.gather(*(t for _, t in tasks))
+        gathered = await asyncio.gather(*(t for _, t in tasks), return_exceptions=True)
         for (i, _), result in zip(tasks, gathered, strict=True):
-            results[i] = result
+            if isinstance(result, BaseException):
+                results[i] = {
+                    "status": "failed",
+                    "host": host,
+                    "username": rows[i].get("username", ""),
+                    "error": f"Unexpected error: {result}",
+                }
+            else:
+                results[i] = result
 
-    return results  # type: ignore[return-value]
+    return cast(list[AuthResult], results)
 
 
 def bulk_check(

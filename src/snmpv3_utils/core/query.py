@@ -125,21 +125,24 @@ async def _walk(
 ) -> list[VarBindResult]:
     """Async WALK: traverse subtree via repeated GETNEXT."""
     results: list[VarBindResult] = []
-    async for error_indication, error_status, _, var_binds in _walk_cmd_async(
-        engine,
-        usm,
-        transport,
-        ContextData(),
-        ObjectType(ObjectIdentity(oid)),
-        lexicographicMode=False,
-    ):
-        if error_indication or error_status:
-            results.append(
-                {"error": str(error_indication or error_status), "host": host, "oid": oid}
-            )
-            break
-        for vb in var_binds:
-            results.append(_var_bind_to_dict(vb))
+    try:
+        async for error_indication, error_status, _, var_binds in _walk_cmd_async(
+            engine,
+            usm,
+            transport,
+            ContextData(),
+            ObjectType(ObjectIdentity(oid)),
+            lexicographicMode=False,
+        ):
+            if error_indication or error_status:
+                results.append(
+                    {"error": str(error_indication or error_status), "host": host, "oid": oid}
+                )
+                break
+            for vb in var_binds:
+                results.append(_var_bind_to_dict(vb))
+    except Exception as exc:
+        results.append({"error": str(exc), "host": host, "oid": oid})
     return results
 
 
