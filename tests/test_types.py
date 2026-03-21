@@ -27,7 +27,12 @@ def test_varbind_error_keys() -> None:
 
 
 def test_set_success_keys() -> None:
-    record: SetSuccess = {"status": "ok", "host": "192.168.1.1", "oid": "1.3.6.1.2.1.1.1.0", "value": "42"}
+    record: SetSuccess = {
+        "status": "ok",
+        "host": "192.168.1.1",
+        "oid": "1.3.6.1.2.1.1.1.0",
+        "value": "42",
+    }
     assert set(record.keys()) == {"status", "host", "oid", "value"}
 
 
@@ -37,12 +42,22 @@ def test_set_error_keys() -> None:
 
 
 def test_auth_success_keys() -> None:
-    record: AuthSuccess = {"status": "ok", "host": "192.168.1.1", "username": "admin", "sysdescr": "Linux"}
+    record: AuthSuccess = {
+        "status": "ok",
+        "host": "192.168.1.1",
+        "username": "admin",
+        "sysdescr": "Linux",
+    }
     assert set(record.keys()) == {"status", "host", "username", "sysdescr"}
 
 
 def test_auth_error_keys() -> None:
-    record: AuthError = {"status": "failed", "host": "192.168.1.1", "username": "admin", "error": "timeout"}
+    record: AuthError = {
+        "status": "failed",
+        "host": "192.168.1.1",
+        "username": "admin",
+        "error": "timeout",
+    }
     assert set(record.keys()) == {"status", "host", "username", "error"}
 
 
@@ -62,3 +77,37 @@ def test_union_aliases_exist() -> None:
     assert SetResult is not None
     assert AuthResult is not None
     assert TrapResult is not None
+
+
+def test_types_importable_from_package_root() -> None:
+    """Verify all types are re-exported from snmpv3_utils."""
+    from snmpv3_utils import (
+        AuthError,
+        AuthResult,
+        AuthSuccess,
+        SetError,
+        SetResult,
+        SetSuccess,
+        TrapError,
+        TrapResult,
+        TrapSuccess,
+        VarBindError,
+        VarBindResult,
+        VarBindSuccess,
+    )
+
+    for typ in (
+        AuthError,
+        AuthResult,
+        AuthSuccess,
+        SetError,
+        SetResult,
+        SetSuccess,
+        TrapError,
+        TrapResult,
+        TrapSuccess,
+        VarBindError,
+        VarBindResult,
+        VarBindSuccess,
+    ):
+        assert typ is not None

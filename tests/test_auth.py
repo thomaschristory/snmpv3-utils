@@ -54,7 +54,12 @@ class TestBulkCheck:
     def test_bulk_returns_result_per_row(self, mock_check, tmp_path):
         mock_check.side_effect = [
             {"status": "ok", "host": "192.168.1.1", "username": "admin", "sysdescr": "Linux"},
-            {"status": "failed", "host": "192.168.1.1", "username": "wrong", "error": "wrongDigest"},
+            {
+                "status": "failed",
+                "host": "192.168.1.1",
+                "username": "wrong",
+                "error": "wrongDigest",
+            },
         ]
         csv_content = self._make_csv(
             [
@@ -83,7 +88,11 @@ class TestBulkCheck:
         assert len(results) == 2
         assert results[0]["status"] == "ok"
         assert results[1]["status"] == "failed"
-        assert all(set(r.keys()) in ({"status", "host", "username", "sysdescr"}, {"status", "host", "username", "error"}) for r in results)
+        assert all(
+            set(r.keys())
+            in ({"status", "host", "username", "sysdescr"}, {"status", "host", "username", "error"})
+            for r in results
+        )
 
     def test_bulk_returns_failed_on_invalid_credentials(self, tmp_path):
         """Rows with invalid credential combinations return status=failed without raising."""

@@ -6,6 +6,7 @@ The `fmt` parameter controls output format: RICH (default) or JSON.
 """
 
 import json
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any
 
@@ -22,7 +23,7 @@ class OutputFormat(StrEnum):
 
 
 def print_single(
-    record: dict[str, Any],
+    record: Mapping[str, Any],
     fmt: OutputFormat = OutputFormat.RICH,
     console: Console | None = None,
 ) -> None:
@@ -39,7 +40,7 @@ def print_single(
 
 
 def print_records(
-    records: list[dict[str, Any]],
+    records: Sequence[Mapping[str, Any]],
     fmt: OutputFormat = OutputFormat.RICH,
     console: Console | None = None,
 ) -> None:
@@ -59,7 +60,7 @@ def print_records(
 
 
 def print_error(
-    record: dict[str, Any],
+    record: Mapping[str, Any],
     fmt: OutputFormat = OutputFormat.RICH,
     console: Console | None = None,
 ) -> None:
