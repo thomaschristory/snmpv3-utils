@@ -6,6 +6,8 @@ Errors are returned as {"error": "<message>"} — never raised.
 """
 
 import asyncio
+import logging
+import time
 from typing import Any
 
 from pysnmp.hlapi.v3arch.asyncio import (
@@ -36,6 +38,8 @@ from pysnmp.hlapi.v3arch.asyncio import (
 
 from snmpv3_utils.types import SetResult, VarBindResult, VarBindSuccess
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # Var-bind helper
 # ---------------------------------------------------------------------------
@@ -59,6 +63,7 @@ async def _get(
     transport: UdpTransportTarget,
 ) -> VarBindResult:
     """Async GET: fetch a single OID value."""
+    logger.info("GET %s OID=%s user=%s", host, oid, usm.userName)
     try:
         error_indication, error_status, _, var_binds = await _get_cmd_async(
             engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid))
@@ -92,6 +97,7 @@ async def _getnext(
     transport: UdpTransportTarget,
 ) -> VarBindResult:
     """Async GETNEXT: return the next OID after the given one."""
+    logger.info("GETNEXT %s OID=%s user=%s", host, oid, usm.userName)
     try:
         error_indication, error_status, _, var_binds = await _next_cmd_async(
             engine, usm, transport, ContextData(), ObjectType(ObjectIdentity(oid))
@@ -124,6 +130,7 @@ async def _walk(
     transport: UdpTransportTarget,
 ) -> list[VarBindResult]:
     """Async WALK: traverse subtree via repeated GETNEXT."""
+    logger.info("WALK %s OID=%s user=%s", host, oid, usm.userName)
     results: list[VarBindResult] = []
     try:
         async for error_indication, error_status, _, var_binds in _walk_cmd_async(
@@ -166,6 +173,7 @@ async def _bulk(
     max_repetitions: int = 25,
 ) -> list[VarBindResult]:
     """Async GETBULK retrieval."""
+    logger.info("BULK %s OID=%s user=%s", host, oid, usm.userName)
     try:
         error_indication, error_status, _, var_binds = await _bulk_cmd_async(
             engine,
@@ -215,6 +223,7 @@ async def _set_oid(
     transport: UdpTransportTarget,
 ) -> SetResult:
     """Async SET: set an OID to a value."""
+    logger.info("SET %s OID=%s user=%s", host, oid, usm.userName)
     try:
         error_indication, error_status, _, _ = await _set_cmd_async(
             engine,
@@ -264,7 +273,10 @@ def get(
     retries: int = 3,
 ) -> VarBindResult:
     """Fetch a single OID value."""
-    return asyncio.run(_get_with_transport(host, oid, usm, port, timeout, retries))
+    start = time.monotonic()
+    result = asyncio.run(_get_with_transport(host, oid, usm, port, timeout, retries))
+    logger.debug("GET %s completed in %.3fs", host, time.monotonic() - start)
+    return result
 
 
 def getnext(
@@ -276,7 +288,10 @@ def getnext(
     retries: int = 3,
 ) -> VarBindResult:
     """Return the next OID after the given one (single GETNEXT step)."""
-    return asyncio.run(_getnext_with_transport(host, oid, usm, port, timeout, retries))
+    start = time.monotonic()
+    result = asyncio.run(_getnext_with_transport(host, oid, usm, port, timeout, retries))
+    logger.debug("GETNEXT %s completed in %.3fs", host, time.monotonic() - start)
+    return result
 
 
 def walk(
@@ -288,7 +303,10 @@ def walk(
     retries: int = 3,
 ) -> list[VarBindResult]:
     """Traverse the subtree rooted at oid via repeated GETNEXT."""
-    return asyncio.run(_walk_with_transport(host, oid, usm, port, timeout, retries))
+    start = time.monotonic()
+    result = asyncio.run(_walk_with_transport(host, oid, usm, port, timeout, retries))
+    logger.debug("WALK %s completed in %.3fs", host, time.monotonic() - start)
+    return result
 
 
 def bulk(
@@ -301,9 +319,12 @@ def bulk(
     max_repetitions: int = 25,
 ) -> list[VarBindResult]:
     """GETBULK retrieval."""
-    return asyncio.run(
+    start = time.monotonic()
+    result = asyncio.run(
         _bulk_with_transport(host, oid, usm, port, timeout, retries, max_repetitions)
     )
+    logger.debug("BULK %s completed in %.3fs", host, time.monotonic() - start)
+    return result
 
 
 def set_oid(
@@ -334,6 +355,9 @@ def set_oid(
     except (ValueError, TypeError) as exc:
         return {"error": f"Invalid value for type '{value_type}': {exc}", "host": host, "oid": oid}
 
-    return asyncio.run(
+    start = time.monotonic()
+    result = asyncio.run(
         _set_oid_with_transport(host, oid, snmp_value, value, usm, port, timeout, retries)
     )
+    logger.debug("SET %s completed in %.3fs", host, time.monotonic() - start)
+    return result
