@@ -64,9 +64,9 @@ class TestBulkCheck:
                 {
                     "username": "admin",
                     "auth_protocol": "SHA256",
-                    "auth_key": "pass",
+                    "auth_key": "authpass1234",
                     "priv_protocol": "AES128",
-                    "priv_key": "priv",
+                    "priv_key": "privpass1234",
                     "security_level": "authPriv",
                 },
                 {
