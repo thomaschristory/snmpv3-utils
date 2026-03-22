@@ -21,7 +21,7 @@ from snmpv3_utils.cli._options import (
 )
 from snmpv3_utils.core.trap import send_trap as core_send_trap
 from snmpv3_utils.core.trap import stress_trap as core_stress_trap
-from snmpv3_utils.output import OutputFormat, print_error, print_single
+from snmpv3_utils.output import OutputFormat, print_error, print_single, stress_progress
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -165,62 +165,30 @@ def stress(
         retries,
     )
 
-    # Build progress callback for Rich mode
-    progress_callback = None
-    progress = None
-    task_id = None
-    if fmt == OutputFormat.RICH:
-        from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
-
-        progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[bold blue]{task.description}"),
-            BarColumn(),
-            TextColumn(
-                "{task.completed}/{task.total}" if duration is None else "{task.completed} sent"
-            ),
-            TextColumn("[green]{task.fields[rate]}/s"),
-        )
-        total_val = count if duration is None else None
-        task_id = progress.add_task(f"Stress testing {host}", total=total_val, rate="0")
-
-        start_time = __import__("time").monotonic()
-
-        def _on_progress(dispatched: int, total: int | None) -> None:
-            elapsed = __import__("time").monotonic() - start_time
-            current_rate = f"{dispatched / elapsed:.1f}" if elapsed > 0 else "0"
-            progress.update(task_id, completed=dispatched, rate=current_rate)
-
-        progress_callback = _on_progress
-
     # Use retries=0 default for stress unless explicitly overridden
     stress_retries = creds.retries if retries is not None else 0
 
-    if progress:
-        progress.start()
+    stress_kwargs: dict[str, object] = dict(
+        count=count,
+        duration=duration,
+        rate=rate,
+        concurrency=concurrency,
+        inform=inform,
+        port=creds.port,
+        timeout=creds.timeout,
+        retries=stress_retries,
+        oid=oid,
+    )
+
     try:
-        result = core_stress_trap(
-            host,
-            usm,
-            count=count,
-            duration=duration,
-            rate=rate,
-            concurrency=concurrency,
-            inform=inform,
-            port=creds.port,
-            timeout=creds.timeout,
-            retries=stress_retries,
-            oid=oid,
-            on_progress=progress_callback,
-        )
+        if fmt == OutputFormat.RICH:
+            with stress_progress(host, count, duration) as progress_callback:
+                result = core_stress_trap(host, usm, on_progress=progress_callback, **stress_kwargs)  # type: ignore[arg-type]
+        else:
+            result = core_stress_trap(host, usm, **stress_kwargs)  # type: ignore[arg-type]
     except KeyboardInterrupt:
-        if progress:
-            progress.stop()
         typer.echo("\nStopped.")
         return
-    finally:
-        if progress:
-            progress.stop()
 
     if result["sent"] > 0 and result["errors"] < result["sent"]:
         print_single(result, fmt=fmt)
