@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-22
+
+### Added
+- `-v` (verbose/INFO) and `-vv` (debug/DEBUG) flags for all CLI commands (#36)
+- New `debug.py` module with `configure_logging()` for structured log levels and `translate_error()` for actionable SNMP error hints
+- Core modules emit `logger.info()`/`logger.debug()` messages for SNMP operations
+- `-vv` enables pysnmp internal debug logging for deep protocol inspection
+
 ## [0.3.3] - 2026-03-22
 
 ### Fixed
