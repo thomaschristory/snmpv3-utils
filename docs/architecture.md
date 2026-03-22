@@ -27,7 +27,7 @@ CLI args + env + profile
 | `core/` | All SNMP operations — returns TypedDict results, errors as `{"error": "..."}` | No CLI, no rich |
 | `core/query.py` | Async internals (`_get`, `_getnext`, etc.) + `_*_with_transport` wrappers + sync public API via `asyncio.run()` | |
 | `core/auth.py` | Credential checking — `_check_creds_async` reuses engine/transport from `_get`; `_bulk_check_async` fans out with `asyncio.gather` + `Semaphore` | |
-| `core/trap.py` | `send_trap` + future `listen` | |
+| `core/trap.py` | `send_trap`, `stress_trap` + future `listen` | |
 | `types.py` | All TypedDict definitions and Union aliases | |
 | `security.py` | Only file that imports pysnmp auth/priv constants; re-exports `UsmUserData` | |
 | `output.py` | Only file that imports rich; takes dicts, formats for display | |

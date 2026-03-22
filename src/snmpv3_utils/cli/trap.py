@@ -213,6 +213,11 @@ def stress(
             oid=oid,
             on_progress=progress_callback,
         )
+    except KeyboardInterrupt:
+        if progress:
+            progress.stop()
+        typer.echo("\nStopped.")
+        return
     finally:
         if progress:
             progress.stop()

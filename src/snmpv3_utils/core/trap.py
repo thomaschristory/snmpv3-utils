@@ -3,6 +3,7 @@
 
 send_trap: fire-and-forget (trap) or acknowledged (inform, --inform flag).
 listen: blocking trap receiver for a single USM credential set.
+stress_trap: send a high volume of traps for load testing.
 
 Note on trap listener: pysnmp v7 uses asyncio for its notification receiver.
 The synchronous ntfrcv API was removed. The listen() function is a stub
