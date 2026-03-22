@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-22
+
+### Fixed
+- Empty SNMPv3 username now raises a clear error instead of cryptic pysnmp `SnmpAdminString` constraint traceback (#25)
+- All CLI commands validate credentials before attempting SNMP operations
+
 ## [0.3.0] - 2026-03-22
 
 ### Added
