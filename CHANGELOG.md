@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-03-22
+
+### Fixed
+- Added `cryptography` as a runtime dependency — pysnmp requires it for all privacy protocols (DES, AES128, AES256) but does not declare it, causing "Ciphering services not available" errors on any `authPriv` operation (#33)
+
 ## [0.3.2] - 2026-03-22
 
 ### Fixed
