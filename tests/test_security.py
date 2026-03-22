@@ -136,3 +136,25 @@ def test_exactly_8_char_keys_accepted():
     )
     usm = build_usm_user(creds)
     assert isinstance(usm, UsmUserData)
+
+
+@pytest.mark.parametrize(
+    "priv_protocol",
+    [PrivProtocol.DES, PrivProtocol.AES128, PrivProtocol.AES256],
+)
+def test_cryptography_backend_available(priv_protocol: PrivProtocol) -> None:
+    """Verify that the cryptography package is installed and pysnmp can cipher.
+
+    Regression test for #33: pysnmp needs the cryptography library at runtime
+    for any privacy protocol but does not declare it as a dependency.
+    """
+    creds = Credentials(
+        username="cryptotest",
+        auth_protocol=AuthProtocol.SHA256,
+        auth_key="authpassword",
+        priv_protocol=priv_protocol,
+        priv_key="privpassword",
+        security_level=SecurityLevel.AUTH_PRIV,
+    )
+    usm = build_usm_user(creds)
+    assert isinstance(usm, UsmUserData)
