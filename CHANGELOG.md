@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-03-22
+
+### Fixed
+- `resolve_credentials()` errors (bad profile name, invalid enum) now show clean error messages instead of raw Python tracebacks (#27)
+- Auth/priv keys shorter than 8 characters now raise a clear `ValueError` instead of pysnmp's cryptic `WrongValueError` with raw OID bytes (#29)
+
 ## [0.3.1] - 2026-03-22
 
 ### Fixed
