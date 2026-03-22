@@ -100,6 +100,10 @@ def build_usm_user(creds: Credentials) -> UsmUserData:
             raise ValueError(
                 "auth_protocol and auth_key are required for authNoPriv and authPriv security levels"  # noqa: E501
             )
+        if len(creds.auth_key) < 8:
+            raise ValueError(
+                "auth_key must be at least 8 characters (RFC 3414)"
+            )
 
     auth_proto = creds.auth_protocol
     assert auth_proto is not None
@@ -115,6 +119,10 @@ def build_usm_user(creds: Credentials) -> UsmUserData:
     # AUTH_PRIV
     if not creds.priv_protocol or not creds.priv_key:
         raise ValueError("priv_protocol and priv_key are required for authPriv security level")
+    if len(creds.priv_key) < 8:
+        raise ValueError(
+            "priv_key must be at least 8 characters (RFC 3414)"
+        )
 
     return UsmUserData(
         creds.username,

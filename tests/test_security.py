@@ -96,3 +96,43 @@ def test_empty_username_raises():
     creds = Credentials(username="", security_level=SecurityLevel.NO_AUTH_NO_PRIV)
     with pytest.raises(ValueError, match="username is required"):
         build_usm_user(creds)
+
+
+def test_short_auth_key_raises():
+    """Auth key shorter than 8 characters must raise ValueError."""
+    creds = Credentials(
+        username="admin",
+        auth_protocol=AuthProtocol.SHA256,
+        auth_key="short",
+        security_level=SecurityLevel.AUTH_NO_PRIV,
+    )
+    with pytest.raises(ValueError, match="auth_key must be at least 8 characters"):
+        build_usm_user(creds)
+
+
+def test_short_priv_key_raises():
+    """Priv key shorter than 8 characters must raise ValueError."""
+    creds = Credentials(
+        username="admin",
+        auth_protocol=AuthProtocol.SHA256,
+        auth_key="longenoughkey",
+        priv_protocol=PrivProtocol.AES128,
+        priv_key="short",
+        security_level=SecurityLevel.AUTH_PRIV,
+    )
+    with pytest.raises(ValueError, match="priv_key must be at least 8 characters"):
+        build_usm_user(creds)
+
+
+def test_exactly_8_char_keys_accepted():
+    """Keys of exactly 8 characters should be accepted (boundary test)."""
+    creds = Credentials(
+        username="admin",
+        auth_protocol=AuthProtocol.SHA256,
+        auth_key="12345678",
+        priv_protocol=PrivProtocol.AES128,
+        priv_key="12345678",
+        security_level=SecurityLevel.AUTH_PRIV,
+    )
+    usm = build_usm_user(creds)
+    assert isinstance(usm, UsmUserData)

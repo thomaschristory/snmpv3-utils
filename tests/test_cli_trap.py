@@ -73,6 +73,44 @@ class TestTrapStressValidation:
         assert result.exit_code == 1
         assert "username is required" in result.output.lower()
 
+    def test_stress_short_auth_key_shows_error(self):
+        """Short auth key should show a clean error, not a pysnmp WrongValueError."""
+        result = runner.invoke(
+            app,
+            [
+                "trap", "stress", "192.168.1.1",
+                "-u", "admin",
+                "--auth-protocol", "SHA256",
+                "--auth-key", "short",
+                "--priv-protocol", "AES256",
+                "--priv-key", "short",
+                "--security-level", "authPriv",
+                "--format", "json",
+            ],
+        )
+        assert result.exit_code == 1
+        assert "at least 8 characters" in result.output.lower()
+        assert "WrongValueError" not in result.output
+
+    def test_stress_short_priv_key_shows_error(self):
+        """Short priv key should show a clean error, not a pysnmp WrongValueError."""
+        result = runner.invoke(
+            app,
+            [
+                "trap", "stress", "192.168.1.1",
+                "-u", "admin",
+                "--auth-protocol", "SHA256",
+                "--auth-key", "longenoughkey",
+                "--priv-protocol", "AES256",
+                "--priv-key", "short",
+                "--security-level", "authPriv",
+                "--format", "json",
+            ],
+        )
+        assert result.exit_code == 1
+        assert "at least 8 characters" in result.output.lower()
+        assert "WrongValueError" not in result.output
+
 
 class TestTrapStress:
     @patch("snmpv3_utils.cli.trap.core_stress_trap")
