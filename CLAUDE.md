@@ -39,6 +39,7 @@ uv sync --all-extras
 - Branch from `main`, name: `<type>/<issue-number>-<short-description>` (e.g. `feat/`, `fix/`, `docs/`, `chore/`)
 - PRs require CI to pass (ruff, mypy, pytest)
 - Conventional commits required: `feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`, `style:`
+- **Squash merges lose `Closes #N` keywords** from individual commits. When squash-merging, include `Closes #N` / `Fixes #N` in the squash commit body (the `--body` flag of `gh pr merge --squash`), or close issues manually after merge.
 
 ## pysnmp v7 Notes
 
