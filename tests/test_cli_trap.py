@@ -53,9 +53,25 @@ class TestTrapSend:
 class TestTrapListen:
     def test_listen_exits_nonzero_with_not_implemented_message(self):
         """The listen stub should exit 1 and print the NotImplementedError message."""
-        result = runner.invoke(app, ["trap", "listen", "--port", "16200"])
+        result = runner.invoke(app, ["trap", "listen", "--port", "16200", "--username", "test"])
         assert result.exit_code != 0
         assert "not implemented" in result.output.lower()
+
+
+class TestTrapSendValidation:
+    def test_send_no_username_shows_error(self):
+        """Missing username should show a clear error, not a pysnmp traceback."""
+        result = runner.invoke(app, ["trap", "send", "192.168.1.1", "--format", "json"])
+        assert result.exit_code == 1
+        assert "username is required" in result.output.lower()
+
+
+class TestTrapStressValidation:
+    def test_stress_no_username_shows_error(self):
+        """Missing username should show a clear error, not a pysnmp traceback."""
+        result = runner.invoke(app, ["trap", "stress", "192.168.1.1", "--format", "json"])
+        assert result.exit_code == 1
+        assert "username is required" in result.output.lower()
 
 
 class TestTrapStress:

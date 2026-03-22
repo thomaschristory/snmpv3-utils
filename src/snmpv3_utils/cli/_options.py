@@ -64,4 +64,8 @@ def build_usm_from_cli(
         "retries": retries,
     }
     creds = resolve_credentials(profile_name=profile, cli_overrides=overrides)
-    return build_usm_user(creds), creds
+    try:
+        return build_usm_user(creds), creds
+    except ValueError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e

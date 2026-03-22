@@ -89,3 +89,10 @@ def test_invalid_auth_priv_combination_raises():
     )
     with pytest.raises(ValueError, match="auth_protocol and auth_key are required"):
         build_usm_user(creds)
+
+
+def test_empty_username_raises():
+    """Empty username must raise ValueError, not a cryptic pysnmp constraint error."""
+    creds = Credentials(username="", security_level=SecurityLevel.NO_AUTH_NO_PRIV)
+    with pytest.raises(ValueError, match="username is required"):
+        build_usm_user(creds)
