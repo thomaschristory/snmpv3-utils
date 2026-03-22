@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import csv
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -26,6 +27,8 @@ from snmpv3_utils.types import AuthResult, VarBindError
 
 if TYPE_CHECKING:
     from pysnmp.hlapi.v3arch.asyncio import SnmpEngine
+
+logger = logging.getLogger(__name__)
 
 _SYSDESCR_OID = "1.3.6.1.2.1.1.1.0"
 _DEFAULT_MAX_CONCURRENT = 10
@@ -64,6 +67,7 @@ def check_creds(
 
     Returns {"status": "ok", ...} or {"status": "failed", "error": ..., ...}.
     """
+    logger.info("AUTH CHECK %s user=%s", host, username)
     result = get(host, _SYSDESCR_OID, usm, port=port, timeout=timeout, retries=retries)
     if "error" in result:
         err = cast(VarBindError, result)
@@ -102,6 +106,7 @@ async def _bulk_check_async(
 
     with open(csv_path, newline="") as f:
         rows = list(csv.DictReader(f))
+    logger.info("BULK AUTH CHECK %s rows=%d", host, len(rows))
 
     engine = SnmpEngine()
     try:

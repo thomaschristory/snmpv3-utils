@@ -23,6 +23,7 @@ from snmpv3_utils.cli._options import (
 )
 from snmpv3_utils.core.auth import bulk_check as core_bulk_check
 from snmpv3_utils.core.auth import check_creds as core_check_creds
+from snmpv3_utils.debug import translate_error
 from snmpv3_utils.output import OutputFormat, print_error, print_records, print_single
 
 app = typer.Typer(no_args_is_help=True)
@@ -60,6 +61,8 @@ def check(
         host, usm, port=creds.port, timeout=creds.timeout, retries=1, username=creds.username
     )
     if result["status"] == "failed":
+        if "error" in result:
+            result["error"] = translate_error(result["error"], creds)
         print_error(result, fmt=fmt)
         raise typer.Exit(1)
     print_single(result, fmt=fmt)
@@ -91,4 +94,7 @@ def bulk(
     except csv.Error as err:
         typer.echo(f"Failed to parse CSV file {file.resolve()}: {err}", err=True)
         raise typer.Exit(1) from err
+    for r in results:
+        if "error" in r:
+            r["error"] = translate_error(r["error"])  # type: ignore[typeddict-item]
     print_records(results, fmt=fmt)

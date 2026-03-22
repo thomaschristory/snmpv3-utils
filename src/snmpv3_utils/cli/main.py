@@ -30,8 +30,17 @@ def main(
         is_eager=True,
         help="Show version and exit.",
     ),
+    verbose: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        count=True,
+        help="Increase verbosity (-v for info, -vv for debug).",
+    ),
 ) -> None:
-    pass
+    from snmpv3_utils.debug import configure_logging
+
+    configure_logging(verbose)
 
 
 app.add_typer(

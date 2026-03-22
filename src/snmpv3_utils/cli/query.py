@@ -24,6 +24,7 @@ from snmpv3_utils.core.query import get as core_get
 from snmpv3_utils.core.query import getnext as core_getnext
 from snmpv3_utils.core.query import set_oid as core_set
 from snmpv3_utils.core.query import walk as core_walk
+from snmpv3_utils.debug import translate_error
 from snmpv3_utils.output import OutputFormat, print_error, print_records, print_single
 
 app = typer.Typer(no_args_is_help=True)
@@ -60,6 +61,7 @@ def get(
     )
     result = core_get(host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries)
     if "error" in result:
+        result["error"] = translate_error(result["error"], creds)  # type: ignore[typeddict-item]
         print_error(result, fmt=fmt)
         raise typer.Exit(1)
     print_single(result, fmt=fmt)
@@ -98,6 +100,7 @@ def getnext(
         host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries
     )
     if "error" in result:
+        result["error"] = translate_error(result["error"], creds)  # type: ignore[typeddict-item]
         print_error(result, fmt=fmt)
         raise typer.Exit(1)
     print_single(result, fmt=fmt)
@@ -136,6 +139,7 @@ def walk(
         host, oid, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries
     )
     if results and "error" in results[0]:
+        results[0]["error"] = translate_error(results[0]["error"], creds)  # type: ignore[typeddict-item]
         print_error(results[0], fmt=fmt)
         raise typer.Exit(1)
     print_records(results, fmt=fmt)
@@ -183,6 +187,7 @@ def bulk(
         max_repetitions=max_repetitions,
     )
     if results and "error" in results[0]:
+        results[0]["error"] = translate_error(results[0]["error"], creds)  # type: ignore[typeddict-item]
         print_error(results[0], fmt=fmt)
         raise typer.Exit(1)
     print_records(results, fmt=fmt)
@@ -223,6 +228,7 @@ def set_cmd(
         host, oid, value, type_, usm, port=creds.port, timeout=creds.timeout, retries=creds.retries
     )
     if "error" in result:
+        result["error"] = translate_error(result["error"], creds)  # type: ignore[typeddict-item]
         print_error(result, fmt=fmt)
         raise typer.Exit(1)
     print_single(result, fmt=fmt)

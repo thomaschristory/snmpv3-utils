@@ -21,6 +21,7 @@ from snmpv3_utils.cli._options import (
 )
 from snmpv3_utils.core.trap import send_trap as core_send_trap
 from snmpv3_utils.core.trap import stress_trap as core_stress_trap
+from snmpv3_utils.debug import translate_error
 from snmpv3_utils.output import OutputFormat, print_error, print_single, stress_progress
 
 app = typer.Typer(no_args_is_help=True)
@@ -72,6 +73,7 @@ def send(
         oid=oid,
     )
     if "error" in result:
+        result["error"] = translate_error(result["error"], creds)  # type: ignore[typeddict-item]
         print_error(result, fmt=fmt)
         raise typer.Exit(1)
     print_single(result, fmt=fmt)
@@ -194,7 +196,7 @@ def stress(
     if result["sent"] == 0 or result["errors"] >= result["sent"]:
         samples: list[str] = result["error_samples"]
         if samples:
-            sample_msg = samples[0]
+            sample_msg = translate_error(samples[0], creds)
             typer.echo(
                 f"Error: all {result['sent']} traps failed. Sample: {sample_msg}",
                 err=True,

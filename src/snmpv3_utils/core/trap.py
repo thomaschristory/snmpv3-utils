@@ -11,6 +11,7 @@ pending asyncio implementation.
 """
 
 import asyncio
+import logging
 import time
 from collections.abc import Callable
 from typing import Any
@@ -28,6 +29,8 @@ from pysnmp.hlapi.v3arch.asyncio import (
 )
 
 from snmpv3_utils.types import StressResult, TrapResult
+
+logger = logging.getLogger(__name__)
 
 
 def sendNotification(  # noqa: N802  (matches pysnmp camelCase convention)
@@ -86,6 +89,7 @@ def send_trap(
     inform=False: fire-and-forget (no acknowledgment expected).
     inform=True:  INFORM-REQUEST — waits for acknowledgment from receiver.
     """
+    logger.info("SEND TRAP %s inform=%s user=%s", host, inform, usm.userName)
     engine = SnmpEngine()
     transport = _make_udp_target(host, port, timeout, retries)
     notification_type = "inform" if inform else "trap"
@@ -250,6 +254,7 @@ def stress_trap(
     concurrency: max concurrent in-flight traps via semaphore.
     on_progress: callback(dispatched, total) called after each task dispatch.
     """
+    logger.info("STRESS TRAP %s count=%d duration=%s user=%s", host, count, duration, usm.userName)
     return asyncio.run(
         _stress_loop(
             host,
