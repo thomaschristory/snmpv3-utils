@@ -158,3 +158,52 @@ class TestQuerySet:
             app, ["query", "set", "192.168.1.1", "1.3.6.1.2.1.1.5.0", "x", "--format", "json"]
         )
         assert result.exit_code != 0
+
+
+class TestVerboseFlag:
+    @patch("snmpv3_utils.cli.query.core_get")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_v_flag_accepted(self, mock_usm, mock_creds, mock_get):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_get.return_value = {"oid": "1.3.6.1.2.1.1.1.0", "value": "Linux"}
+
+        result = runner.invoke(
+            app, ["-v", "query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--format", "json"]
+        )
+        assert result.exit_code == 0
+
+    @patch("snmpv3_utils.cli.query.core_get")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_vv_flag_accepted(self, mock_usm, mock_creds, mock_get):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_get.return_value = {"oid": "1.3.6.1.2.1.1.1.0", "value": "Linux"}
+
+        result = runner.invoke(
+            app, ["-vv", "query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--format", "json"]
+        )
+        assert result.exit_code == 0
+
+    @patch("snmpv3_utils.cli.query.core_get")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_json_stdout_clean_with_v(self, mock_usm, mock_creds, mock_get):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_get.return_value = {"oid": "1.3.6.1.2.1.1.1.0", "value": "Linux"}
+
+        result = runner.invoke(
+            app, ["-v", "query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--format", "json"]
+        )
+        import json
+        parsed = json.loads(result.output.strip())
+        assert parsed["value"] == "Linux"
