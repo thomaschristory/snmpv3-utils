@@ -190,8 +190,15 @@ def stress(
         typer.echo("\nStopped.")
         return
 
-    if result["sent"] > 0 and result["errors"] < result["sent"]:
-        print_single(result, fmt=fmt)
-    else:
-        print_error(result, fmt=fmt)
+    print_single(result, fmt=fmt)
+    if result["sent"] == 0 or result["errors"] >= result["sent"]:
+        samples: list[str] = result["error_samples"]
+        if samples:
+            sample_msg = samples[0]
+            typer.echo(
+                f"Error: all {result['sent']} traps failed. Sample: {sample_msg}",
+                err=True,
+            )
+        elif result["sent"] == 0:
+            typer.echo("Error: no traps sent.", err=True)
         raise typer.Exit(1)
