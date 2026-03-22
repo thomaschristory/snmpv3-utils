@@ -73,3 +73,15 @@ class TrapError(TypedDict):
 
 
 TrapResult: TypeAlias = TrapSuccess | TrapError
+
+# --- Stress test operation ---
+
+
+class StressResult(TypedDict):
+    host: str
+    sent: int
+    errors: int
+    success_rate: str
+    duration_s: float
+    rate_achieved: float
+    error_samples: list[str]

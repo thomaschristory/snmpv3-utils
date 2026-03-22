@@ -1,4 +1,5 @@
 # tests/test_cli_trap.py
+import json
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -55,3 +56,95 @@ class TestTrapListen:
         result = runner.invoke(app, ["trap", "listen", "--port", "16200"])
         assert result.exit_code != 0
         assert "not implemented" in result.output.lower()
+
+
+class TestTrapStress:
+    @patch("snmpv3_utils.cli.trap.core_stress_trap")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_stress_json_output(self, mock_usm, mock_creds, mock_stress):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_stress.return_value = {
+            "host": "192.168.1.1",
+            "sent": 10,
+            "errors": 1,
+            "success_rate": "90.0%",
+            "duration_s": 1.5,
+            "rate_achieved": 6.7,
+            "error_samples": ["timeout"],
+        }
+
+        result = runner.invoke(
+            app, ["trap", "stress", "192.168.1.1", "--count", "10", "--format", "json"]
+        )
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["sent"] == 10
+        assert data["errors"] == 1
+        assert "success_rate" in data
+
+    @patch("snmpv3_utils.cli.trap.core_stress_trap")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_stress_exit_code_0_on_partial_success(self, mock_usm, mock_creds, mock_stress):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_stress.return_value = {
+            "host": "h",
+            "sent": 10,
+            "errors": 5,
+            "success_rate": "50.0%",
+            "duration_s": 1.0,
+            "rate_achieved": 10.0,
+            "error_samples": [],
+        }
+
+        result = runner.invoke(app, ["trap", "stress", "h", "--count", "10", "--format", "json"])
+        assert result.exit_code == 0
+
+    @patch("snmpv3_utils.cli.trap.core_stress_trap")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_stress_exit_code_1_on_all_errors(self, mock_usm, mock_creds, mock_stress):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_stress.return_value = {
+            "host": "h",
+            "sent": 10,
+            "errors": 10,
+            "success_rate": "0.0%",
+            "duration_s": 1.0,
+            "rate_achieved": 10.0,
+            "error_samples": ["err"],
+        }
+
+        result = runner.invoke(app, ["trap", "stress", "h", "--count", "10", "--format", "json"])
+        assert result.exit_code == 1
+
+    @patch("snmpv3_utils.cli.trap.core_stress_trap")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_stress_exit_code_1_on_zero_sent(self, mock_usm, mock_creds, mock_stress):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_stress.return_value = {
+            "host": "h",
+            "sent": 0,
+            "errors": 0,
+            "success_rate": "N/A",
+            "duration_s": 0.0,
+            "rate_achieved": 0.0,
+            "error_samples": [],
+        }
+
+        result = runner.invoke(app, ["trap", "stress", "h", "--count", "0", "--format", "json"])
+        assert result.exit_code == 1

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-22
+
+### Added
+- `snmpv3 trap stress <host>` command for high-volume trap load testing (#4)
+- Async orchestrator with `asyncio.gather`, semaphore-based concurrency control, and rate limiting
+- Count mode (`--count N`) and duration mode (`--duration N` seconds)
+- Rich progress bar with real-time rate display
+- JSON summary output with `--format json`
+- `StressResult` TypedDict for structured stress test results
+- `stress_progress()` context manager in `output.py` for progress display
+- `docs/architecture.md` as lasting architecture reference
+
+### Fixed
+- Duration mode with `rate=0` no longer creates unbounded tight loop (#19)
+- Stress error output now shows meaningful message instead of raw dict (#20)
+- `pytest-asyncio` moved to correct dependency group (#21)
+- Architecture docs and module docstrings updated for new functions (#22, #24)
+- Stress command handles `KeyboardInterrupt` gracefully (#23)
+
 ## [0.2.0] - 2026-03-21
 
 ### Changed

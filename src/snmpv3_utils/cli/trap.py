@@ -20,7 +20,8 @@ from snmpv3_utils.cli._options import (
     build_usm_from_cli,
 )
 from snmpv3_utils.core.trap import send_trap as core_send_trap
-from snmpv3_utils.output import OutputFormat, print_error, print_single
+from snmpv3_utils.core.trap import stress_trap as core_stress_trap
+from snmpv3_utils.output import OutputFormat, print_error, print_single, stress_progress
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -117,3 +118,87 @@ def listen(
         raise typer.Exit(1) from e
     except KeyboardInterrupt:
         typer.echo("\nStopped.")
+
+
+@app.command()
+def stress(
+    host: str,
+    count: Annotated[int, typer.Option("--count", "-n", help="Total traps to send")] = 1000,
+    duration: Annotated[
+        int | None, typer.Option("--duration", "-d", help="Run for N seconds (overrides --count)")
+    ] = None,
+    rate: Annotated[int, typer.Option("--rate", help="Target traps/sec (0=unlimited)")] = 100,
+    concurrency: Annotated[
+        int, typer.Option("--concurrency", help="Max concurrent in-flight traps")
+    ] = 10,
+    inform: Annotated[
+        bool, typer.Option("--inform", help="Send INFORM-REQUEST (acknowledged)")
+    ] = False,
+    oid: Annotated[str, typer.Option("--oid", help="Trap OID")] = "1.3.6.1.6.3.1.1.5.1",
+    port: PortOpt = None,
+    timeout: TimeoutOpt = None,
+    retries: RetriesOpt = None,
+    profile: ProfileOpt = None,
+    username: UsernameOpt = None,
+    auth_protocol: AuthProtoOpt = None,
+    auth_key: AuthKeyOpt = None,
+    priv_protocol: PrivProtoOpt = None,
+    priv_key: PrivKeyOpt = None,
+    security_level: SecLevelOpt = None,
+    fmt: FormatOpt = OutputFormat.RICH,
+) -> None:
+    """Send a high volume of traps for stress testing.
+
+    By default sends 1000 traps at 100/s with concurrency=10.
+    Use --duration to run for a fixed time instead of a fixed count.
+    """
+    usm, creds = build_usm_from_cli(
+        profile,
+        username,
+        auth_protocol,
+        auth_key,
+        priv_protocol,
+        priv_key,
+        security_level,
+        port,
+        timeout,
+        retries,
+    )
+
+    # Use retries=0 default for stress unless explicitly overridden
+    stress_retries = creds.retries if retries is not None else 0
+
+    stress_kwargs: dict[str, object] = dict(
+        count=count,
+        duration=duration,
+        rate=rate,
+        concurrency=concurrency,
+        inform=inform,
+        port=creds.port,
+        timeout=creds.timeout,
+        retries=stress_retries,
+        oid=oid,
+    )
+
+    try:
+        if fmt == OutputFormat.RICH:
+            with stress_progress(host, count, duration) as progress_callback:
+                result = core_stress_trap(host, usm, on_progress=progress_callback, **stress_kwargs)  # type: ignore[arg-type]
+        else:
+            result = core_stress_trap(host, usm, **stress_kwargs)  # type: ignore[arg-type]
+    except KeyboardInterrupt:
+        typer.echo("\nStopped.")
+        return
+
+    print_single(result, fmt=fmt)
+    if result["sent"] == 0 or result["errors"] >= result["sent"]:
+        samples: list[str] = result["error_samples"]
+        if samples:
+            sample_msg = samples[0]
+            typer.echo(
+                f"Error: all {result['sent']} traps failed. Sample: {sample_msg}",
+                err=True,
+            )
+        elif result["sent"] == 0:
+            typer.echo("Error: no traps sent.", err=True)
+        raise typer.Exit(1)

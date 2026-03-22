@@ -6,11 +6,14 @@ The `fmt` parameter controls output format: RICH (default) or JSON.
 """
 
 import json
-from collections.abc import Mapping, Sequence
+import time
+from collections.abc import Callable, Generator, Mapping, Sequence
+from contextlib import contextmanager
 from enum import StrEnum
 from typing import Any
 
 from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 _default_console = Console()
@@ -57,6 +60,42 @@ def print_records(
     for record in records:
         table.add_row(*[str(v) for v in record.values()])
     c.print(table)
+
+
+@contextmanager
+def stress_progress(
+    host: str,
+    count: int,
+    duration: int | None,
+) -> Generator[Callable[[int, int | None], None], None, None]:
+    """Context manager for stress test Rich progress bar.
+
+    Yields a callback ``(dispatched, total) -> None`` that updates the bar.
+    """
+    progress = Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        TextColumn(
+            "{task.completed}/{task.total}" if duration is None else "{task.completed} sent"
+        ),
+        TextColumn("[green]{task.fields[rate]}/s"),
+    )
+    total_val = count if duration is None else None
+    task_id = progress.add_task(f"Stress testing {host}", total=total_val, rate="0")
+
+    start_time = time.monotonic()
+
+    def _on_progress(dispatched: int, total: int | None) -> None:
+        elapsed = time.monotonic() - start_time
+        current_rate = f"{dispatched / elapsed:.1f}" if elapsed > 0 else "0"
+        progress.update(task_id, completed=dispatched, rate=current_rate)
+
+    progress.start()
+    try:
+        yield _on_progress
+    finally:
+        progress.stop()
 
 
 def print_error(
