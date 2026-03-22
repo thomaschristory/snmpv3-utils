@@ -207,3 +207,41 @@ class TestVerboseFlag:
         import json
         parsed = json.loads(result.output.strip())
         assert parsed["value"] == "Linux"
+
+
+class TestErrorTranslation:
+    @patch("snmpv3_utils.cli.query.core_get")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_wrong_digest_error_shows_hint(self, mock_usm, mock_creds, mock_get):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_get.return_value = {"error": "Wrong SNMP PDU digest"}
+
+        result = runner.invoke(
+            app, ["query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--format", "json"]
+        )
+        assert result.exit_code != 0
+        import json
+        output = json.loads(result.output.strip())
+        assert "auth protocol and key" in output["error"].lower()
+
+    @patch("snmpv3_utils.cli.query.core_get")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_unknown_error_passes_through(self, mock_usm, mock_creds, mock_get):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        mock_usm.return_value = object()
+        mock_get.return_value = {"error": "Timeout"}
+
+        result = runner.invoke(
+            app, ["query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--format", "json"]
+        )
+        assert result.exit_code != 0
+        import json
+        output = json.loads(result.output.strip())
+        assert output["error"] == "Timeout"
