@@ -1,9 +1,11 @@
 # tests/test_cli_query.py
+import json
 from unittest.mock import patch
 
 from typer.testing import CliRunner
 
 from snmpv3_utils.cli.main import app
+from snmpv3_utils.security import Credentials
 
 runner = CliRunner()
 
@@ -13,8 +15,6 @@ class TestQueryGet:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_get_outputs_json(self, mock_usm, mock_creds, mock_get):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_get.return_value = {"oid": "1.3.6.1.2.1.1.1.0", "value": "Linux"}
@@ -29,8 +29,6 @@ class TestQueryGet:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_get_exits_nonzero_on_error(self, mock_usm, mock_creds, mock_get):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_get.return_value = {"error": "Timeout"}
@@ -46,8 +44,6 @@ class TestQueryWalk:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_walk_outputs_json_array(self, mock_usm, mock_creds, mock_walk):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_walk.return_value = [
@@ -63,8 +59,6 @@ class TestQueryWalk:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_walk_exits_nonzero_on_error(self, mock_usm, mock_creds, mock_walk):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_walk.return_value = [{"error": "Timeout", "host": "192.168.1.1", "oid": "1.3.6.1"}]
@@ -79,8 +73,6 @@ class TestQueryGetnext:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_getnext_outputs_json(self, mock_usm, mock_creds, mock_getnext):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_getnext.return_value = {"oid": "1.3.6.1.2.1.1.2.0", "value": "sysObjectID"}
@@ -128,11 +120,9 @@ class TestQuerySet:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_set_outputs_json_on_success(self, mock_usm, mock_creds, mock_set):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
-        mock_set.return_value = {  # noqa: E501
+        mock_set.return_value = {
             "status": "ok",
             "host": "192.168.1.1",
             "oid": "1.3.6.1.2.1.1.5.0",
@@ -149,8 +139,6 @@ class TestQuerySet:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_set_exits_nonzero_on_error(self, mock_usm, mock_creds, mock_set):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_set.return_value = {"error": "noSuchObject"}
@@ -165,8 +153,6 @@ class TestVerboseFlag:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_v_flag_accepted(self, mock_usm, mock_creds, mock_get):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_get.return_value = {"oid": "1.3.6.1.2.1.1.1.0", "value": "Linux"}
@@ -180,8 +166,6 @@ class TestVerboseFlag:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_vv_flag_accepted(self, mock_usm, mock_creds, mock_get):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_get.return_value = {"oid": "1.3.6.1.2.1.1.1.0", "value": "Linux"}
@@ -195,8 +179,6 @@ class TestVerboseFlag:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_json_stdout_clean_with_v(self, mock_usm, mock_creds, mock_get):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_get.return_value = {"oid": "1.3.6.1.2.1.1.1.0", "value": "Linux"}
@@ -204,7 +186,6 @@ class TestVerboseFlag:
         result = runner.invoke(
             app, ["-v", "query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--format", "json"]
         )
-        import json
         parsed = json.loads(result.output.strip())
         assert parsed["value"] == "Linux"
 
@@ -214,8 +195,6 @@ class TestErrorTranslation:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_wrong_digest_error_shows_hint(self, mock_usm, mock_creds, mock_get):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_get.return_value = {"error": "Wrong SNMP PDU digest"}
@@ -224,7 +203,6 @@ class TestErrorTranslation:
             app, ["query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--format", "json"]
         )
         assert result.exit_code != 0
-        import json
         output = json.loads(result.output.strip())
         assert "auth protocol and key" in output["error"].lower()
 
@@ -232,8 +210,6 @@ class TestErrorTranslation:
     @patch("snmpv3_utils.cli._options.resolve_credentials")
     @patch("snmpv3_utils.cli._options.build_usm_user")
     def test_unknown_error_passes_through(self, mock_usm, mock_creds, mock_get):
-        from snmpv3_utils.security import Credentials
-
         mock_creds.return_value = Credentials()
         mock_usm.return_value = object()
         mock_get.return_value = {"error": "Timeout"}
@@ -242,6 +218,5 @@ class TestErrorTranslation:
             app, ["query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--format", "json"]
         )
         assert result.exit_code != 0
-        import json
         output = json.loads(result.output.strip())
         assert output["error"] == "Timeout"

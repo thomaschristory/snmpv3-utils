@@ -85,8 +85,6 @@ class TestTranslateError:
         assert result == "Some random error"
 
     def test_includes_creds_at_info_level(self):
-        import logging
-
         logger = logging.getLogger("snmpv3_utils")
         logger.setLevel(logging.INFO)
         try:
@@ -106,8 +104,6 @@ class TestTranslateError:
             logger.setLevel(logging.WARNING)
 
     def test_skips_creds_when_none(self):
-        import logging
-
         logger = logging.getLogger("snmpv3_utils")
         logger.setLevel(logging.INFO)
         try:
@@ -118,8 +114,6 @@ class TestTranslateError:
             logger.setLevel(logging.WARNING)
 
     def test_skips_creds_below_info(self):
-        import logging
-
         logger = logging.getLogger("snmpv3_utils")
         logger.setLevel(logging.WARNING)
         creds = Credentials(

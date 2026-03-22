@@ -187,13 +187,9 @@ async def _bulk(
         )
     except Exception as exc:
         return [{"error": str(exc), "host": host, "oid": oid}]
-    results: list[VarBindResult] = []
     if error_indication or error_status:
-        results.append({"error": str(error_indication or error_status), "host": host, "oid": oid})
-    else:
-        for vb in var_binds:
-            results.append(_var_bind_to_dict(vb))
-    return results
+        return [{"error": str(error_indication or error_status), "host": host, "oid": oid}]
+    return [_var_bind_to_dict(vb) for vb in var_binds]
 
 
 async def _bulk_with_transport(

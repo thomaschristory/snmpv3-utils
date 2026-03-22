@@ -89,12 +89,9 @@ def configure_logging(verbosity: int) -> None:
     else:
         fmt = "%(levelname)s: %(message)s"
 
-    if logger.handlers:
-        logger.handlers[0].setFormatter(logging.Formatter(fmt))
-    else:
-        handler = logging.StreamHandler(sys.stderr)
-        handler.setFormatter(logging.Formatter(fmt))
-        logger.addHandler(handler)
+    if not logger.handlers:
+        logger.addHandler(logging.StreamHandler(sys.stderr))
+    logger.handlers[0].setFormatter(logging.Formatter(fmt))
 
     if verbosity >= 2 and not _pysnmp_debug_enabled:
         from pysnmp.debug import Debug, set_logger
