@@ -91,6 +91,38 @@ class TestQueryGetnext:
         assert "sysObjectID" in result.output
 
 
+class TestCredentialErrors:
+    """Errors from resolve_credentials must produce clean CLI output, not raw tracebacks."""
+
+    def test_nonexistent_profile_shows_clean_error(self):
+        result = runner.invoke(
+            app, ["query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "--profile", "nonexistent"]
+        )
+        assert result.exit_code != 0
+        assert "Error:" in result.output
+        assert "Traceback" not in result.output
+
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    def test_resolve_credentials_keyerror_shows_clean_error(self, mock_resolve):
+        mock_resolve.side_effect = KeyError("badprofile")
+        result = runner.invoke(
+            app, ["query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "-u", "test"]
+        )
+        assert result.exit_code != 0
+        assert "Error:" in result.output
+        assert "Traceback" not in result.output
+
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    def test_resolve_credentials_valueerror_shows_clean_error(self, mock_resolve):
+        mock_resolve.side_effect = ValueError("invalid auth protocol")
+        result = runner.invoke(
+            app, ["query", "get", "192.168.1.1", "1.3.6.1.2.1.1.1.0", "-u", "test"]
+        )
+        assert result.exit_code != 0
+        assert "Error:" in result.output
+        assert "Traceback" not in result.output
+
+
 class TestQuerySet:
     @patch("snmpv3_utils.cli.query.core_set")
     @patch("snmpv3_utils.cli._options.resolve_credentials")

@@ -63,9 +63,12 @@ def build_usm_from_cli(
         "timeout": timeout,
         "retries": retries,
     }
-    creds = resolve_credentials(profile_name=profile, cli_overrides=overrides)
     try:
+        creds = resolve_credentials(profile_name=profile, cli_overrides=overrides)
         return build_usm_user(creds), creds
+    except KeyError as e:
+        typer.echo(f"Error: profile {e} not found", err=True)
+        raise typer.Exit(1) from e
     except ValueError as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1) from e
