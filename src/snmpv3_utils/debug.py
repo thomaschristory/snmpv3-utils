@@ -10,9 +10,8 @@ from __future__ import annotations
 import logging
 import sys
 
-from pysnmp.debug import Debug, set_logger
-
 _LOGGER_NAME = "snmpv3_utils"
+_pysnmp_debug_enabled = False
 
 
 def configure_logging(verbosity: int) -> None:
@@ -21,20 +20,27 @@ def configure_logging(verbosity: int) -> None:
     0 = WARNING (default), 1 = INFO (-v), 2 = DEBUG (-vv).
     Idempotent — safe to call multiple times.
     """
+    global _pysnmp_debug_enabled  # noqa: PLW0603
     logger = logging.getLogger(_LOGGER_NAME)
+    logger.propagate = False
 
     level_map = {0: logging.WARNING, 1: logging.INFO}
     logger.setLevel(level_map.get(verbosity, logging.DEBUG))
 
-    # Avoid duplicate handlers on repeated calls
-    if not logger.handlers:
+    if verbosity >= 2:
+        fmt = "%(levelname)s [%(name)s]: %(message)s"
+    else:
+        fmt = "%(levelname)s: %(message)s"
+
+    if logger.handlers:
+        logger.handlers[0].setFormatter(logging.Formatter(fmt))
+    else:
         handler = logging.StreamHandler(sys.stderr)
-        if verbosity >= 2:
-            fmt = "%(levelname)s [%(name)s]: %(message)s"
-        else:
-            fmt = "%(levelname)s: %(message)s"
         handler.setFormatter(logging.Formatter(fmt))
         logger.addHandler(handler)
 
-    if verbosity >= 2:
+    if verbosity >= 2 and not _pysnmp_debug_enabled:
+        from pysnmp.debug import Debug, set_logger
+
         set_logger(Debug("all"))
+        _pysnmp_debug_enabled = True
