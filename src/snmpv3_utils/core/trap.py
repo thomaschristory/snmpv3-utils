@@ -181,16 +181,14 @@ async def _stress_loop(
             tasks.append(asyncio.create_task(_send_one(engine, usm, transport, oid, inform, sem)))
             if on_progress:
                 on_progress(len(tasks), total)
-            if interval:
-                await asyncio.sleep(interval)
+            await asyncio.sleep(interval)
     else:
         # Count mode: dispatch exactly `count` tasks
         for _ in range(count):
             tasks.append(asyncio.create_task(_send_one(engine, usm, transport, oid, inform, sem)))
             if on_progress:
                 on_progress(len(tasks), total)
-            if interval:
-                await asyncio.sleep(interval)
+            await asyncio.sleep(interval)
 
     if not tasks:
         return StressResult(
