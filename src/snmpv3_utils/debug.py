@@ -18,16 +18,12 @@ _LOGGER_NAME = "snmpv3_utils"
 _pysnmp_debug_enabled = False
 
 USM_REPORT_HINTS: dict[str, str] = {
-    "1.3.6.1.6.3.15.1.1.1.0": (
-        "Agent does not support the requested security level"
-    ),
+    "1.3.6.1.6.3.15.1.1.1.0": ("Agent does not support the requested security level"),
     "1.3.6.1.6.3.15.1.1.2.0": (
         "Request outside agent's time window — possible clock skew or stale engine data"
     ),
     "1.3.6.1.6.3.15.1.1.3.0": "User not found on agent",
-    "1.3.6.1.6.3.15.1.1.4.0": (
-        "Engine ID mismatch — possible stale discovery"
-    ),
+    "1.3.6.1.6.3.15.1.1.4.0": ("Engine ID mismatch — possible stale discovery"),
     "1.3.6.1.6.3.15.1.1.5.0": (
         "Auth digest mismatch — verify auth protocol and key match agent config"
     ),

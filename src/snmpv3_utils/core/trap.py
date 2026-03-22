@@ -254,9 +254,7 @@ def stress_trap(
     concurrency: max concurrent in-flight traps via semaphore.
     on_progress: callback(dispatched, total) called after each task dispatch.
     """
-    logger.info(
-        "STRESS TRAP %s count=%d duration=%s user=%s", host, count, duration, usm.userName
-    )
+    logger.info("STRESS TRAP %s count=%d duration=%s user=%s", host, count, duration, usm.userName)
     return asyncio.run(
         _stress_loop(
             host,
