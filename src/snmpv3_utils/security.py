@@ -82,6 +82,12 @@ def build_usm_user(creds: Credentials) -> UsmUserData:
     """
     level = creds.security_level
 
+    if not creds.username:
+        raise ValueError(
+            "username is required. Provide --username, set SNMPV3_USERNAME,"
+            " or use a profile (--profile)."
+        )
+
     if level == SecurityLevel.NO_AUTH_NO_PRIV:
         return UsmUserData(
             creds.username,
