@@ -67,7 +67,5 @@ def build_usm_from_cli(
     try:
         return build_usm_user(creds), creds
     except ValueError as e:
-        import typer
-
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1) from e
