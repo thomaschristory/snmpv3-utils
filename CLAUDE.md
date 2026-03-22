@@ -51,12 +51,16 @@ uv sync --all-extras
 
 ## Releasing
 
-1. Bump `version` in `pyproject.toml`
-2. Add a changelog entry in `CHANGELOG.md` under `## [x.y.z] - YYYY-MM-DD`
-3. Commit: `chore: bump version to x.y.z`
-4. Tag: `git tag vx.y.z`
-5. Push: `git push origin main --tags`
-6. The `release.yml` workflow builds, publishes to PyPI, and creates a GitHub Release (body extracted from CHANGELOG.md)
+**All changes to `main` must go through a PR** — branch protection requires it. Never push directly to `main`.
+
+1. Create a release branch: `chore/<version>-release` (e.g. `chore/0.3.1-release`)
+2. Bump `version` in `pyproject.toml`
+3. Add a changelog entry in `CHANGELOG.md` under `## [x.y.z] - YYYY-MM-DD`
+4. Commit: `chore: bump version to x.y.z`
+5. Open a PR, wait for CI to pass, merge
+6. Pull `main`, then tag: `git tag vx.y.z`
+7. Push the tag only: `git push origin vx.y.z`
+8. The `release.yml` workflow builds, publishes to PyPI, and creates a GitHub Release (body extracted from CHANGELOG.md)
 
 ## Session Guidelines
 
