@@ -326,3 +326,92 @@ class TestListen:
         listen(16299, [usm], on_trap=None)  # must not raise
 
         mock_engine_cls.return_value.transport_dispatcher.close_dispatcher.assert_called_once()
+
+    @patch("snmpv3_utils.core.trap.snmp_config.add_v3_user")
+    @patch("snmpv3_utils.core.trap.snmp_config.add_transport")
+    @patch("snmpv3_utils.core.trap.udp_transport.UdpAsyncioTransport")
+    @patch("snmpv3_utils.core.trap.ntfrcv.NotificationReceiver")
+    @patch("snmpv3_utils.core.trap.SnmpEngine")
+    def test_listen_on_trap_exception_does_not_crash_listener(
+        self, mock_engine_cls, mock_ntfrcv, mock_udp, mock_add_transport, mock_add_v3_user
+    ):
+        """If on_trap raises, the exception is logged and the listener continues."""
+        captured = {}
+
+        def capture_ntfrcv(engine, cb):
+            captured["cb"] = cb
+            return MagicMock()
+
+        mock_ntfrcv.side_effect = capture_ntfrcv
+
+        call_count = 0
+
+        def fake_run_dispatcher():
+            nonlocal call_count
+            mock_oid = MagicMock()
+            mock_oid.__str__ = lambda self: "1.3.6.1.2.1.1.3.0"
+            mock_val = MagicMock()
+            mock_val.__str__ = lambda self: "0"
+            # Fire the callback twice — first call raises, second should still succeed
+            captured["cb"](MagicMock(), "ref1", b"", b"", [(mock_oid, mock_val)], None)
+            captured["cb"](MagicMock(), "ref2", b"", b"", [(mock_oid, mock_val)], None)
+
+        mock_engine_cls.return_value.transport_dispatcher.run_dispatcher.side_effect = (
+            fake_run_dispatcher
+        )
+
+        received = []
+        call_count = 0
+
+        def flaky_on_trap(record):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise RuntimeError("output failure")
+            received.append(record)
+
+        usm = MagicMock()
+        listen(16299, [usm], on_trap=flaky_on_trap)
+
+        # Second trap must still be delivered despite first on_trap raising
+        assert len(received) == 1
+
+    @patch("snmpv3_utils.core.trap.snmp_config.add_v3_user")
+    @patch("snmpv3_utils.core.trap.snmp_config.add_transport")
+    @patch("snmpv3_utils.core.trap.udp_transport.UdpAsyncioTransport")
+    @patch("snmpv3_utils.core.trap.ntfrcv.NotificationReceiver")
+    @patch("snmpv3_utils.core.trap.SnmpEngine")
+    def test_listen_timestamp_is_utc_iso8601(
+        self, mock_engine_cls, mock_ntfrcv, mock_udp, mock_add_transport, mock_add_v3_user
+    ):
+        """Timestamp in TrapReceived must be UTC ISO-8601 with Z suffix."""
+        import re
+
+        captured = {}
+
+        def capture_ntfrcv(engine, cb):
+            captured["cb"] = cb
+            return MagicMock()
+
+        mock_ntfrcv.side_effect = capture_ntfrcv
+
+        def fake_run_dispatcher():
+            mock_oid = MagicMock()
+            mock_oid.__str__ = lambda self: "1.3.6.1.2.1.1.3.0"
+            mock_val = MagicMock()
+            mock_val.__str__ = lambda self: "0"
+            captured["cb"](MagicMock(), "ref1", b"", b"", [(mock_oid, mock_val)], None)
+
+        mock_engine_cls.return_value.transport_dispatcher.run_dispatcher.side_effect = (
+            fake_run_dispatcher
+        )
+
+        received = []
+        usm = MagicMock()
+        listen(16299, [usm], on_trap=received.append)
+
+        assert len(received) == 1
+        ts = received[0]["timestamp"]
+        assert re.match(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", ts), (
+            f"Expected UTC ISO-8601 timestamp with Z suffix, got: {ts!r}"
+        )

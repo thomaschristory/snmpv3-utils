@@ -116,6 +116,41 @@ class TestTrapListen:
         users_arg = call_args.kwargs.get("users") or call_args.args[1]
         assert len(users_arg) == 1
 
+    @patch("snmpv3_utils.cli.trap.print_trap_received")
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_listen_on_trap_wired_to_print_trap_received(
+        self, mock_usm, mock_creds, mock_listen, mock_print
+    ):
+        """The on_trap callback must call print_trap_received, not print_single."""
+        from snmpv3_utils.output import OutputFormat
+        from snmpv3_utils.security import Credentials
+        from snmpv3_utils.types import TrapReceived
+
+        mock_creds.return_value = Credentials(username="alice")
+        mock_usm.return_value = object()
+
+        sample_record: TrapReceived = {
+            "host": "10.0.0.1",
+            "timestamp": "2026-03-23T12:00:00Z",
+            "varbinds": [{"oid": "1.3.6.1.2.1.1.3.0", "value": "0"}],
+        }
+
+        def invoke_on_trap(*args, **kwargs):
+            on_trap = kwargs.get("on_trap")
+            if on_trap:
+                on_trap(sample_record)
+
+        mock_listen.side_effect = invoke_on_trap
+
+        result = runner.invoke(
+            app, ["trap", "listen", "--port", "16299", "--username", "alice"]
+        )
+
+        assert result.exit_code == 0
+        mock_print.assert_called_once_with(sample_record, fmt=OutputFormat.RICH)
+
 
 class TestTrapSendDefaultPort:
     @patch("snmpv3_utils.cli.trap.core_send_trap")
