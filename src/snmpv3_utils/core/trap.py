@@ -344,6 +344,9 @@ def listen(
         varBinds: Any,
         cbCtx: Any,
     ) -> None:
+        # host is best-effort: it comes from the observer that fired immediately
+        # before this callback. If the observer did not fire (e.g. internal
+        # retransmit), host retains the value from the previous trap.
         host = current_host
         timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         varbinds: list[VarBindSuccess] = [
@@ -351,7 +354,10 @@ def listen(
         ]
         record: TrapReceived = {"host": host, "timestamp": timestamp, "varbinds": varbinds}
         if on_trap:
-            on_trap(record)
+            try:
+                on_trap(record)
+            except Exception:
+                logger.exception("on_trap callback raised; trap dropped")
 
     ntfrcv.NotificationReceiver(engine, _callback)
 

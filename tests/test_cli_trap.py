@@ -56,7 +56,7 @@ class TestTrapListen:
     def test_no_credentials_no_profiles_exits_1(self, mock_list, mock_listen):
         mock_list.return_value = []
         result = runner.invoke(app, ["trap", "listen", "--port", "16299"])
-        assert result.exit_code != 0
+        assert result.exit_code == 1
         mock_listen.assert_not_called()
 
     @patch("snmpv3_utils.cli.trap.core_listen")
