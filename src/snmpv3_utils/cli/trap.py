@@ -19,6 +19,7 @@ from snmpv3_utils.cli._options import (
     UsernameOpt,
     build_usm_from_cli,
 )
+from snmpv3_utils.core.trap import listen as core_listen
 from snmpv3_utils.core.trap import send_trap as core_send_trap
 from snmpv3_utils.core.trap import stress_trap as core_stress_trap
 from snmpv3_utils.debug import translate_error
@@ -98,8 +99,6 @@ def listen(
     v1 limitation: single USM credential set per invocation.
     Press Ctrl+C to stop.
     """
-    from snmpv3_utils.core.trap import listen as core_listen
-
     usm, _creds = build_usm_from_cli(
         profile,
         username,
@@ -115,10 +114,7 @@ def listen(
 
     typer.echo(f"Listening for SNMPv3 traps on port {port}... (Ctrl+C to stop)")
     try:
-        core_listen(port, usm, on_trap=lambda r: print_single(r, fmt=fmt))
-    except NotImplementedError as e:
-        typer.echo(f"[not implemented] {e}", err=True)
-        raise typer.Exit(1) from e
+        core_listen(port, [usm], on_trap=lambda r: print_single(r, fmt=fmt))
     except KeyboardInterrupt:
         typer.echo("\nStopped.")
 

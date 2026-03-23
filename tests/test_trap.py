@@ -240,3 +240,93 @@ class TestStressTrap:
         mock_time.monotonic.side_effect = [0.0, 0.0, 0.5, 1.5, 1.5]
         result = stress_trap("192.168.1.1", usm=MagicMock(), count=1000, duration=1, rate=0)
         assert result["sent"] == 2
+
+
+class TestListen:
+    def test_listen_raises_value_error_on_empty_users(self):
+        from snmpv3_utils.core.trap import listen
+        with pytest.raises(ValueError, match="users list must not be empty"):
+            listen(16299, [], on_trap=lambda r: None)
+
+    @patch("snmpv3_utils.core.trap.snmp_config.add_v3_user")
+    @patch("snmpv3_utils.core.trap.snmp_config.add_transport")
+    @patch("snmpv3_utils.core.trap.udp_transport.UdpAsyncioTransport")
+    @patch("snmpv3_utils.core.trap.ntfrcv.NotificationReceiver")
+    @patch("snmpv3_utils.core.trap.SnmpEngine")
+    def test_listen_calls_on_trap_with_correct_shape(
+        self, mock_engine_cls, mock_ntfrcv, mock_udp_transport, mock_add_transport, mock_add_v3_user
+    ):
+        captured = {}
+
+        def capture_ntfrcv(engine, cb):
+            captured["cb"] = cb
+            return MagicMock()
+
+        mock_ntfrcv.side_effect = capture_ntfrcv
+
+        def fake_run_dispatcher():
+            mock_oid = MagicMock()
+            mock_oid.__str__ = lambda self: "1.3.6.1.2.1.1.3.0"
+            mock_val = MagicMock()
+            mock_val.__str__ = lambda self: "12345"
+            captured["cb"](MagicMock(), "ref1", b"", b"", [(mock_oid, mock_val)], None)
+
+        mock_engine_cls.return_value.transport_dispatcher.run_dispatcher.side_effect = (
+            fake_run_dispatcher
+        )
+
+        received = []
+        usm = MagicMock()
+        from snmpv3_utils.core.trap import listen
+        listen(16299, [usm], on_trap=received.append)
+
+        assert len(received) == 1
+        record = received[0]
+        assert "host" in record
+        assert "timestamp" in record
+        assert "varbinds" in record
+        assert isinstance(record["varbinds"], list)
+        assert len(record["varbinds"]) == 1
+        assert record["varbinds"][0]["oid"] == "1.3.6.1.2.1.1.3.0"
+        assert record["varbinds"][0]["value"] == "12345"
+
+    @patch("snmpv3_utils.core.trap.snmp_config.add_v3_user")
+    @patch("snmpv3_utils.core.trap.snmp_config.add_transport")
+    @patch("snmpv3_utils.core.trap.udp_transport.UdpAsyncioTransport")
+    @patch("snmpv3_utils.core.trap.ntfrcv.NotificationReceiver")
+    @patch("snmpv3_utils.core.trap.SnmpEngine")
+    def test_listen_registers_all_usm_users(
+        self, mock_engine_cls, mock_ntfrcv, mock_udp_transport, mock_add_transport, mock_add_v3_user
+    ):
+        mock_engine_cls.return_value.transport_dispatcher.run_dispatcher.return_value = None
+
+        usm1 = MagicMock()
+        usm1.userName = "alice"
+        usm2 = MagicMock()
+        usm2.userName = "bob"
+
+        from snmpv3_utils.core.trap import listen
+        listen(16299, [usm1, usm2], on_trap=None)
+
+        assert mock_add_v3_user.call_count == 2
+        names_registered = [call.args[1] for call in mock_add_v3_user.call_args_list]
+        assert "alice" in names_registered
+        assert "bob" in names_registered
+
+    @patch("snmpv3_utils.core.trap.snmp_config.add_v3_user")
+    @patch("snmpv3_utils.core.trap.snmp_config.add_transport")
+    @patch("snmpv3_utils.core.trap.udp_transport.UdpAsyncioTransport")
+    @patch("snmpv3_utils.core.trap.ntfrcv.NotificationReceiver")
+    @patch("snmpv3_utils.core.trap.SnmpEngine")
+    def test_listen_exits_cleanly_on_keyboard_interrupt(
+        self, mock_engine_cls, mock_ntfrcv, mock_udp_transport, mock_add_transport, mock_add_v3_user
+    ):
+        mock_engine_cls.return_value.transport_dispatcher.run_dispatcher.side_effect = (
+            KeyboardInterrupt
+        )
+
+        usm = MagicMock()
+        from snmpv3_utils.core.trap import listen
+        listen(16299, [usm], on_trap=None)  # must not raise
+
+        mock_engine_cls.return_value.transport_dispatcher.close_dispatcher.assert_called_once()

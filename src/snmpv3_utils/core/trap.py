@@ -14,8 +14,12 @@ import asyncio
 import logging
 import time
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any
 
+from pysnmp.carrier.asyncio.dgram import udp as udp_transport
+from pysnmp.entity import config as snmp_config
+from pysnmp.entity.rfc3413 import ntfrcv
 from pysnmp.hlapi.v3arch.asyncio import (
     ContextData,
     NotificationType,
@@ -28,7 +32,7 @@ from pysnmp.hlapi.v3arch.asyncio import (
     send_notification as _async_send_notification,
 )
 
-from snmpv3_utils.types import StressResult, TrapResult
+from snmpv3_utils.types import StressResult, TrapReceived, TrapResult, VarBindSuccess
 
 logger = logging.getLogger(__name__)
 
@@ -275,21 +279,90 @@ def stress_trap(
 
 def listen(
     port: int,
-    usm: UsmUserData,
-    on_trap: Callable[[dict[str, Any]], None] | None = None,
+    users: list[UsmUserData],
+    on_trap: Callable[[TrapReceived], None] | None = None,
 ) -> None:
     """Block and receive incoming SNMPv3 traps, calling on_trap for each one.
 
-    v1 limitation: single USM credential set per invocation.
+    users: one UsmUserData per SNMPv3 credential set to accept; all are
+           registered with the engine so traps from any of them are decrypted.
+    on_trap: called with a TrapReceived dict for each arriving trap.
+             If None, traps are silently dropped.
 
-    pysnmp v7 removed the synchronous asyncore dispatcher.
-    This function requires asyncio integration — see pysnmp lextudio docs
-    for the asyncio-based notification receiver (ntfrcv) implementation.
-
-    on_trap: called with a dict {"host": ..., "oid": ..., "value": ...} per received var-bind.
-             If None, traps are printed to stdout.
+    Blocks until KeyboardInterrupt. Binds to 0.0.0.0:<port>.
+    Raises ValueError if users is empty.
     """
-    raise NotImplementedError(
-        "Trap listener requires pysnmp v7 asyncio integration. "
-        "See docs/architecture.md for context."
+    if not users:
+        raise ValueError("users list must not be empty")
+
+    logger.info("LISTEN port=%d users=%d", port, len(users))
+
+    engine = SnmpEngine()
+
+    # Register all USM users so the engine can authenticate/decrypt their traps
+    for usm in users:
+        snmp_config.add_v3_user(
+            engine,
+            usm.userName,
+            authProtocol=usm.authentication_protocol,
+            authKey=usm.authentication_key,
+            privProtocol=usm.privacy_protocol,
+            privKey=usm.privacy_key,
+        )
+
+    # add_transport auto-creates and registers an AsyncioDispatcher via
+    # UdpAsyncioTransport.PROTO_TRANSPORT_DISPATCHER when transport_dispatcher is None.
+    # Do NOT pre-assign engine.transport_dispatcher — that bypasses register_recv_callback.
+    snmp_config.add_transport(
+        engine,
+        udp_transport.DOMAIN_NAME,
+        udp_transport.UdpAsyncioTransport().open_server_mode(("0.0.0.0", port)),
     )
+
+    # Capture the source IP via observer before the ntfrcv callback fires.
+    # The "rfc3412.prepareDataElements:unconfirmed" execpoint fires for incoming
+    # unconfirmed PDUs (traps) and includes transportAddress = (host, port).
+    _current_host: dict[str, str] = {"value": "unknown"}
+
+    def _store_transport(
+        snmpEngine: SnmpEngine,
+        execpoint: str,
+        variables: dict[str, Any],
+        cbCtx: Any,
+    ) -> None:
+        addr = variables.get("transportAddress")
+        if addr is not None:
+            try:
+                _current_host["value"] = str(addr[0])
+            except (IndexError, TypeError):
+                pass
+
+    engine.observer.register_observer(
+        _store_transport, "rfc3412.prepareDataElements:unconfirmed"
+    )
+
+    def _callback(
+        snmpEngine: SnmpEngine,
+        stateReference: Any,
+        contextEngineId: Any,
+        contextName: Any,
+        varBinds: Any,
+        cbCtx: Any,
+    ) -> None:
+        host = _current_host["value"]
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        varbinds: list[VarBindSuccess] = [
+            {"oid": str(oid), "value": str(val)} for oid, val in varBinds
+        ]
+        record: TrapReceived = {"host": host, "timestamp": timestamp, "varbinds": varbinds}
+        if on_trap:
+            on_trap(record)
+
+    ntfrcv.NotificationReceiver(engine, _callback)
+
+    try:
+        engine.transport_dispatcher.run_dispatcher()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        engine.transport_dispatcher.close_dispatcher()

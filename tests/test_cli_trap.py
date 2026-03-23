@@ -51,11 +51,25 @@ class TestTrapSend:
 
 
 class TestTrapListen:
-    def test_listen_exits_nonzero_with_not_implemented_message(self):
-        """The listen stub should exit 1 and print the NotImplementedError message."""
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_listen_starts_and_calls_core_listen(self, mock_usm, mock_creds, mock_core_listen):
+        """listen command calls core_listen with a list wrapping the single USM user."""
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials()
+        usm_obj = object()
+        mock_usm.return_value = usm_obj
+        mock_core_listen.return_value = None
+
         result = runner.invoke(app, ["trap", "listen", "--port", "16200", "--username", "test"])
-        assert result.exit_code != 0
-        assert "not implemented" in result.output.lower()
+        assert result.exit_code == 0
+        assert "listening" in result.output.lower()
+        mock_core_listen.assert_called_once()
+        call_args = mock_core_listen.call_args
+        assert call_args[0][0] == 16200  # port
+        assert call_args[0][1] == [usm_obj]  # users list
 
 
 class TestTrapSendDefaultPort:
