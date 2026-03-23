@@ -1,7 +1,7 @@
 # src/snmpv3_utils/core/trap.py
 """Trap send and receive operations.
 
-send_trap: fire-and-forget (trap) or acknowledged (inform, --inform flag).
+send_trap: fire-and-forget (trap) or acknowledged (inform).
 listen: blocking trap receiver supporting multiple USM credential sets.
 stress_trap: send a high volume of traps for load testing.
 """
@@ -10,7 +10,7 @@ import asyncio
 import logging
 import time
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pysnmp.carrier.asyncio.dgram import udp as udp_transport
@@ -308,7 +308,9 @@ def listen(
 
     # add_transport auto-creates and registers an AsyncioDispatcher via
     # UdpAsyncioTransport.PROTO_TRANSPORT_DISPATCHER when transport_dispatcher is None.
-    # Do NOT pre-assign engine.transport_dispatcher — that bypasses register_recv_callback.
+    # Do NOT pre-assign engine.transport_dispatcher — that bypasses the else-branch in
+    # add_transport where register_transport_dispatcher() is called, which wires up the
+    # engine's receive and timer callbacks. Without it, incoming traps are never delivered.
     snmp_config.add_transport(
         engine,
         udp_transport.DOMAIN_NAME,
@@ -332,7 +334,11 @@ def listen(
             try:
                 current_host = str(addr[0])
             except (IndexError, TypeError):
-                pass
+                logger.warning(
+                    "Failed to extract source address from transportAddress=%r; "
+                    "host will be reported as 'unknown'",
+                    addr,
+                )
 
     engine.observer.register_observer(_store_transport, "rfc3412.prepareDataElements:unconfirmed")
 
@@ -344,20 +350,23 @@ def listen(
         varBinds: Any,
         cbCtx: Any,
     ) -> None:
-        # host is best-effort: it comes from the observer that fired immediately
-        # before this callback. If the observer did not fire (e.g. internal
-        # retransmit), host retains the value from the previous trap.
-        host = current_host
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        varbinds: list[VarBindSuccess] = [
-            {"oid": str(oid), "value": str(val)} for oid, val in varBinds
-        ]
-        record: TrapReceived = {"host": host, "timestamp": timestamp, "varbinds": varbinds}
-        if on_trap:
-            try:
+        # host is best-effort: captured by the observer that fires synchronously in
+        # prepareDataElements:unconfirmed immediately before this callback.
+        # If the observer was skipped for some reason, host falls back to the value
+        # from the most recent successfully decoded trap.
+        try:
+            host = current_host
+            timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+            varbinds: list[VarBindSuccess] = [
+                {"oid": str(oid), "value": str(val)} for oid, val in varBinds
+            ]
+            record: TrapReceived = {"host": host, "timestamp": timestamp, "varbinds": varbinds}
+            if on_trap:
                 on_trap(record)
-            except Exception:
-                logger.exception("on_trap callback raised; trap dropped")
+        except Exception:
+            logger.exception(
+                "Failed to process trap from host=%s; trap dropped", current_host
+            )
 
     ntfrcv.NotificationReceiver(engine, _callback)
 
@@ -366,4 +375,5 @@ def listen(
     except KeyboardInterrupt:
         pass
     finally:
-        engine.transport_dispatcher.close_dispatcher()
+        if engine.transport_dispatcher is not None:
+            engine.transport_dispatcher.close_dispatcher()
