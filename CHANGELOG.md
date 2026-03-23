@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-03-23
+
+### Fixed
+- `snmpv3 trap send` and `snmpv3 trap stress` now correctly default to port 162 instead of 161 (#39)
+
 ## [0.4.0] - 2026-03-22
 
 ### Added
