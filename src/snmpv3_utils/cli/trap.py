@@ -143,13 +143,28 @@ def listen(
                 err=True,
             )
             raise typer.Exit(1)
-        users = [build_usm_user(config.load_profile(name)) for name in names]
+        users = []
+        for name in names:
+            try:
+                users.append(build_usm_user(config.load_profile(name)))
+            except Exception as exc:  # noqa: BLE001
+                typer.echo(f"Warning: skipping profile '{name}': {exc}", err=True)
+
+        if not users:
+            typer.echo("Error: no valid profiles could be loaded.", err=True)
+            raise typer.Exit(1)
 
     typer.echo(f"Listening for SNMPv3 traps on port {port}... (Ctrl+C to stop)")
     try:
         core_listen(port, users=users, on_trap=lambda r: print_trap_received(r, fmt=fmt))
     except KeyboardInterrupt:
         typer.echo("\nStopped.")
+    except OSError as exc:
+        typer.echo(f"Error: could not start listener on port {port}: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(1) from exc
 
 
 @app.command()
