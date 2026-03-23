@@ -105,7 +105,7 @@ def print_trap_received(
 ) -> None:
     """Print a single received trap. Called once per arriving trap (streaming).
 
-    Rich: header line with timestamp and host, then OID/Value table.
+    Rich: header line with timestamp and host, followed by OID/Value table if varbinds present.
     JSON: one JSON object per line, newline-delimited.
     """
     if fmt == OutputFormat.JSON:
