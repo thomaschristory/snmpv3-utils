@@ -144,9 +144,7 @@ class TestTrapListen:
 
         mock_listen.side_effect = invoke_on_trap
 
-        result = runner.invoke(
-            app, ["trap", "listen", "--port", "16299", "--username", "alice"]
-        )
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299", "--username", "alice"])
 
         assert result.exit_code == 0
         mock_print.assert_called_once_with(sample_record, fmt=OutputFormat.RICH)

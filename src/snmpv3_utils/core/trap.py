@@ -364,9 +364,7 @@ def listen(
             if on_trap:
                 on_trap(record)
         except Exception:
-            logger.exception(
-                "Failed to process trap from host=%s; trap dropped", current_host
-            )
+            logger.exception("Failed to process trap from host=%s; trap dropped", current_host)
 
     ntfrcv.NotificationReceiver(engine, _callback)
 
