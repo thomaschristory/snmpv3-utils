@@ -52,24 +52,72 @@ class TestTrapSend:
 
 class TestTrapListen:
     @patch("snmpv3_utils.cli.trap.core_listen")
-    @patch("snmpv3_utils.cli._options.resolve_credentials")
-    @patch("snmpv3_utils.cli._options.build_usm_user")
-    def test_listen_starts_and_calls_core_listen(self, mock_usm, mock_creds, mock_core_listen):
-        """listen command calls core_listen with a list wrapping the single USM user."""
+    @patch("snmpv3_utils.cli.trap.config.list_profiles")
+    def test_no_credentials_no_profiles_exits_1(self, mock_list, mock_listen):
+        mock_list.return_value = []
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299"])
+        assert result.exit_code != 0
+        mock_listen.assert_not_called()
+
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli.trap.build_usm_user")
+    @patch("snmpv3_utils.cli.trap.config.load_profile")
+    @patch("snmpv3_utils.cli.trap.config.list_profiles")
+    def test_no_credentials_loads_all_profiles(
+        self, mock_list, mock_load, mock_usm, mock_listen
+    ):
         from snmpv3_utils.security import Credentials
 
-        mock_creds.return_value = Credentials()
-        usm_obj = object()
-        mock_usm.return_value = usm_obj
-        mock_core_listen.return_value = None
+        mock_list.return_value = ["alice", "bob"]
+        mock_load.return_value = Credentials(username="alice")
+        mock_usm.return_value = object()
+        mock_listen.return_value = None
 
-        result = runner.invoke(app, ["trap", "listen", "--port", "16200", "--username", "test"])
-        assert result.exit_code == 0
-        assert "listening" in result.output.lower()
-        mock_core_listen.assert_called_once()
-        call_args = mock_core_listen.call_args
-        assert call_args[0][0] == 16200  # port
-        assert call_args[0][1] == [usm_obj]  # users list
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299"])
+
+        assert mock_load.call_count == 2
+        assert mock_listen.called
+        call_args = mock_listen.call_args
+        users_arg = call_args.kwargs.get("users") or call_args.args[1]
+        assert len(users_arg) == 2
+
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_explicit_profile_uses_single_user(self, mock_usm, mock_creds, mock_listen):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials(username="alice")
+        mock_usm.return_value = object()
+        mock_listen.return_value = None
+
+        result = runner.invoke(
+            app, ["trap", "listen", "--port", "16299", "--profile", "alice"]
+        )
+
+        assert mock_listen.called
+        call_args = mock_listen.call_args
+        users_arg = call_args.kwargs.get("users") or call_args.args[1]
+        assert len(users_arg) == 1
+
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_inline_credentials_uses_single_user(self, mock_usm, mock_creds, mock_listen):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials(username="admin")
+        mock_usm.return_value = object()
+        mock_listen.return_value = None
+
+        result = runner.invoke(
+            app, ["trap", "listen", "--port", "16299", "--username", "admin"]
+        )
+
+        assert mock_listen.called
+        call_args = mock_listen.call_args
+        users_arg = call_args.kwargs.get("users") or call_args.args[1]
+        assert len(users_arg) == 1
 
 
 class TestTrapSendDefaultPort:

@@ -5,6 +5,7 @@ from typing import Annotated
 
 import typer
 
+from snmpv3_utils import config
 from snmpv3_utils.cli._options import (
     AuthKeyOpt,
     AuthProtoOpt,
@@ -23,7 +24,14 @@ from snmpv3_utils.core.trap import listen as core_listen
 from snmpv3_utils.core.trap import send_trap as core_send_trap
 from snmpv3_utils.core.trap import stress_trap as core_stress_trap
 from snmpv3_utils.debug import translate_error
-from snmpv3_utils.output import OutputFormat, print_error, print_single, stress_progress
+from snmpv3_utils.output import (
+    OutputFormat,
+    print_error,
+    print_single,
+    print_trap_received,
+    stress_progress,
+)
+from snmpv3_utils.security import build_usm_user
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -95,26 +103,51 @@ def listen(
 ) -> None:
     """Listen for incoming SNMPv3 traps (blocking).
 
-    Decrypts traps using the provided or configured credentials.
-    v1 limitation: single USM credential set per invocation.
+    With no credential flags: decrypts traps from all saved profiles.
+    With --profile or inline flags: uses only those credentials.
     Press Ctrl+C to stop.
     """
-    usm, _creds = build_usm_from_cli(
-        profile,
-        username,
-        auth_protocol,
-        auth_key,
-        priv_protocol,
-        priv_key,
-        security_level,
-        None,
-        None,
-        None,
+    any_cred = any(
+        x is not None
+        for x in [
+            profile,
+            username,
+            auth_protocol,
+            auth_key,
+            priv_protocol,
+            priv_key,
+            security_level,
+        ]
     )
+
+    if any_cred:
+        usm, _creds = build_usm_from_cli(
+            profile,
+            username,
+            auth_protocol,
+            auth_key,
+            priv_protocol,
+            priv_key,
+            security_level,
+            port=None,
+            timeout=None,
+            retries=None,
+        )
+        users = [usm]
+    else:
+        names = config.list_profiles()
+        if not names:
+            typer.echo(
+                "Error: no profiles saved and no credentials provided. "
+                "Use --username or save a profile first.",
+                err=True,
+            )
+            raise typer.Exit(1)
+        users = [build_usm_user(config.load_profile(name)) for name in names]
 
     typer.echo(f"Listening for SNMPv3 traps on port {port}... (Ctrl+C to stop)")
     try:
-        core_listen(port, [usm], on_trap=lambda r: print_single(r, fmt=fmt))
+        core_listen(port, users=users, on_trap=lambda r: print_trap_received(r, fmt=fmt))
     except KeyboardInterrupt:
         typer.echo("\nStopped.")
 
