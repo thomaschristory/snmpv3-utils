@@ -95,6 +95,7 @@ class TestTrapListen:
             app, ["trap", "listen", "--port", "16299", "--profile", "alice"]
         )
 
+        assert result.exit_code == 0
         assert mock_listen.called
         call_args = mock_listen.call_args
         users_arg = call_args.kwargs.get("users") or call_args.args[1]
@@ -114,6 +115,7 @@ class TestTrapListen:
             app, ["trap", "listen", "--port", "16299", "--username", "admin"]
         )
 
+        assert result.exit_code == 0
         assert mock_listen.called
         call_args = mock_listen.call_args
         users_arg = call_args.kwargs.get("users") or call_args.args[1]
