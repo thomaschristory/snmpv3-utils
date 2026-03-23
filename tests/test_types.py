@@ -111,3 +111,23 @@ def test_types_importable_from_package_root() -> None:
         VarBindSuccess,
     ):
         assert typ is not None
+
+
+class TestTrapReceived:
+    def test_trap_received_shape(self):
+        from snmpv3_utils.types import TrapReceived
+
+        record: TrapReceived = {
+            "host": "192.168.1.1",
+            "timestamp": "2026-03-23T12:00:00",
+            "varbinds": [{"oid": "1.3.6.1.2.1.1.3.0", "value": "12345"}],
+        }
+        assert record["host"] == "192.168.1.1"
+        assert record["timestamp"] == "2026-03-23T12:00:00"
+        assert len(record["varbinds"]) == 1
+        assert record["varbinds"][0]["oid"] == "1.3.6.1.2.1.1.3.0"
+
+    def test_trap_received_exported_from_package(self):
+        from snmpv3_utils import TrapReceived
+
+        assert TrapReceived is not None

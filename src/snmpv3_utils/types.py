@@ -74,6 +74,15 @@ class TrapError(TypedDict):
 
 TrapResult: TypeAlias = TrapSuccess | TrapError
 
+# --- Trap listener operation ---
+
+
+class TrapReceived(TypedDict):
+    host: str
+    timestamp: str  # ISO-8601, e.g. "2026-03-23T12:34:56"
+    varbinds: list[VarBindSuccess]
+
+
 # --- Stress test operation ---
 
 
