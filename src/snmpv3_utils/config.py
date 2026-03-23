@@ -22,7 +22,7 @@ def get_profiles_path() -> Path:
     return Path(user_config_dir("snmpv3utils")) / "profiles.toml"
 
 
-def load_from_env() -> Credentials:
+def load_from_env(default_port: int = 161) -> Credentials:
     """Read SNMPV3_* environment variables (and .env file) into a Credentials object."""
     load_dotenv()
 
@@ -37,7 +37,7 @@ def load_from_env() -> Credentials:
         priv_protocol=PrivProtocol(raw_priv) if raw_priv else None,
         priv_key=os.getenv("SNMPV3_PRIV_KEY"),
         security_level=SecurityLevel(raw_level),
-        port=int(os.getenv("SNMPV3_PORT", "161")),
+        port=int(os.getenv("SNMPV3_PORT", str(default_port))),
         timeout=int(os.getenv("SNMPV3_TIMEOUT", "5")),
         retries=int(os.getenv("SNMPV3_RETRIES", "3")),
     )
@@ -153,9 +153,10 @@ def _apply_overrides(base: Credentials, overrides: dict[str, Any]) -> Credential
 def resolve_credentials(
     profile_name: str | None = None,
     cli_overrides: dict[str, Any] | None = None,
+    default_port: int = 161,
 ) -> Credentials:
     """Merge credentials: defaults -> env -> profile -> CLI flags."""
-    base = load_from_env()
+    base = load_from_env(default_port=default_port)
 
     if profile_name:
         profile_dict = load_profile_dict(profile_name)  # sparse dict

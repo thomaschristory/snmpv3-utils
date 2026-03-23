@@ -62,6 +62,7 @@ def send(
         port,
         timeout,
         retries,
+        default_port=162,
     )
     result = core_send_trap(
         host,
@@ -165,6 +166,7 @@ def stress(
         port,
         timeout,
         retries,
+        default_port=162,
     )
 
     # Use retries=0 default for stress unless explicitly overridden

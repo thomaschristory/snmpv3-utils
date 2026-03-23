@@ -125,6 +125,22 @@ def test_profile_port_overrides_env_port(tmp_path, monkeypatch):
     assert creds.port == 161  # profile value wins over env
 
 
+def test_resolve_credentials_default_port_162(monkeypatch):
+    """resolve_credentials(default_port=162) returns port=162 when no env var overrides it."""
+    monkeypatch.delenv("SNMPV3_PORT", raising=False)
+
+    creds = resolve_credentials(default_port=162)
+    assert creds.port == 162
+
+
+def test_resolve_credentials_env_port_overrides_default_port(monkeypatch):
+    """Explicit SNMPV3_PORT env var takes precedence over default_port."""
+    monkeypatch.setenv("SNMPV3_PORT", "1162")
+
+    creds = resolve_credentials(default_port=162)
+    assert creds.port == 1162
+
+
 def test_profile_security_level_overrides_env(tmp_path, monkeypatch):
     """Profile with noAuthNoPriv should override env authPriv."""
     monkeypatch.setattr("snmpv3_utils.config.get_profiles_path", lambda: tmp_path / "profiles.toml")

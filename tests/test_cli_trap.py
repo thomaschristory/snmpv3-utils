@@ -58,6 +58,36 @@ class TestTrapListen:
         assert "not implemented" in result.output.lower()
 
 
+class TestTrapSendDefaultPort:
+    @patch("snmpv3_utils.cli.trap.core_send_trap")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_send_uses_port_162_by_default(self, mock_usm, mock_creds, mock_trap):
+        """trap send with no --port flag should use port 162, not 161."""
+        from snmpv3_utils.security import Credentials
+
+        captured_kwargs: dict = {}
+
+        def capture_resolve(*args, **kwargs):
+            captured_kwargs.update(kwargs)
+            return Credentials(port=162)
+
+        mock_creds.side_effect = capture_resolve
+        mock_usm.return_value = object()
+        mock_trap.return_value = {
+            "status": "ok",
+            "host": "192.168.1.1",
+            "type": "trap",
+            "inform": False,
+        }
+
+        result = runner.invoke(
+            app, ["trap", "send", "192.168.1.1", "--username", "admin", "--format", "json"]
+        )
+        assert result.exit_code == 0
+        assert captured_kwargs.get("default_port") == 162
+
+
 class TestTrapSendValidation:
     def test_send_no_username_shows_error(self):
         """Missing username should show a clear error, not a pysnmp traceback."""
