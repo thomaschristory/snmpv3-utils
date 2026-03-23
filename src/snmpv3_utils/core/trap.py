@@ -318,7 +318,7 @@ def listen(
     # Capture the source IP via observer before the ntfrcv callback fires.
     # The "rfc3412.prepareDataElements:unconfirmed" execpoint fires for incoming
     # unconfirmed PDUs (traps) and includes transportAddress = (host, port).
-    _current_host: dict[str, str] = {"value": "unknown"}
+    current_host = "unknown"
 
     def _store_transport(
         snmpEngine: SnmpEngine,
@@ -326,16 +326,15 @@ def listen(
         variables: dict[str, Any],
         cbCtx: Any,
     ) -> None:
+        nonlocal current_host
         addr = variables.get("transportAddress")
         if addr is not None:
             try:
-                _current_host["value"] = str(addr[0])
+                current_host = str(addr[0])
             except (IndexError, TypeError):
                 pass
 
-    engine.observer.register_observer(
-        _store_transport, "rfc3412.prepareDataElements:unconfirmed"
-    )
+    engine.observer.register_observer(_store_transport, "rfc3412.prepareDataElements:unconfirmed")
 
     def _callback(
         snmpEngine: SnmpEngine,
@@ -345,7 +344,7 @@ def listen(
         varBinds: Any,
         cbCtx: Any,
     ) -> None:
-        host = _current_host["value"]
+        host = current_host
         timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         varbinds: list[VarBindSuccess] = [
             {"oid": str(oid), "value": str(val)} for oid, val in varBinds

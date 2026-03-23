@@ -1,5 +1,6 @@
 # tests/test_output.py
 import json
+from io import StringIO
 
 from rich.console import Console
 
@@ -58,8 +59,6 @@ def test_print_error_rich_does_not_crash():
 
 class TestPrintTrapReceived:
     def test_rich_output_contains_host_and_timestamp(self):
-        from io import StringIO
-
         record = {
             "host": "10.0.0.1",
             "timestamp": "2026-03-23T12:00:00",
@@ -75,8 +74,6 @@ class TestPrintTrapReceived:
         assert "12345" in output
 
     def test_rich_output_with_multiple_varbinds(self):
-        from io import StringIO
-
         record = {
             "host": "10.0.0.2",
             "timestamp": "2026-03-23T12:00:00",

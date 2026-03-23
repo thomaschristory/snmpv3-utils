@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from snmpv3_utils.core.trap import send_trap, stress_trap
+from snmpv3_utils.core.trap import listen, send_trap, stress_trap
 
 
 @pytest.fixture
@@ -244,7 +244,6 @@ class TestStressTrap:
 
 class TestListen:
     def test_listen_raises_value_error_on_empty_users(self):
-        from snmpv3_utils.core.trap import listen
         with pytest.raises(ValueError, match="users list must not be empty"):
             listen(16299, [], on_trap=lambda r: None)
 
@@ -277,7 +276,6 @@ class TestListen:
 
         received = []
         usm = MagicMock()
-        from snmpv3_utils.core.trap import listen
         listen(16299, [usm], on_trap=received.append)
 
         assert len(received) == 1
@@ -305,7 +303,6 @@ class TestListen:
         usm2 = MagicMock()
         usm2.userName = "bob"
 
-        from snmpv3_utils.core.trap import listen
         listen(16299, [usm1, usm2], on_trap=None)
 
         assert mock_add_v3_user.call_count == 2
@@ -326,7 +323,6 @@ class TestListen:
         )
 
         usm = MagicMock()
-        from snmpv3_utils.core.trap import listen
         listen(16299, [usm], on_trap=None)  # must not raise
 
         mock_engine_cls.return_value.transport_dispatcher.close_dispatcher.assert_called_once()
