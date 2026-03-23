@@ -63,9 +63,7 @@ class TestTrapListen:
     @patch("snmpv3_utils.cli.trap.build_usm_user")
     @patch("snmpv3_utils.cli.trap.config.load_profile")
     @patch("snmpv3_utils.cli.trap.config.list_profiles")
-    def test_no_credentials_loads_all_profiles(
-        self, mock_list, mock_load, mock_usm, mock_listen
-    ):
+    def test_no_credentials_loads_all_profiles(self, mock_list, mock_load, mock_usm, mock_listen):
         from snmpv3_utils.security import Credentials
 
         mock_list.return_value = ["alice", "bob"]
@@ -74,6 +72,7 @@ class TestTrapListen:
         mock_listen.return_value = None
 
         result = runner.invoke(app, ["trap", "listen", "--port", "16299"])
+        assert result.exit_code == 0
 
         assert mock_load.call_count == 2
         assert mock_listen.called
@@ -91,9 +90,7 @@ class TestTrapListen:
         mock_usm.return_value = object()
         mock_listen.return_value = None
 
-        result = runner.invoke(
-            app, ["trap", "listen", "--port", "16299", "--profile", "alice"]
-        )
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299", "--profile", "alice"])
 
         assert result.exit_code == 0
         assert mock_listen.called
@@ -111,9 +108,7 @@ class TestTrapListen:
         mock_usm.return_value = object()
         mock_listen.return_value = None
 
-        result = runner.invoke(
-            app, ["trap", "listen", "--port", "16299", "--username", "admin"]
-        )
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299", "--username", "admin"])
 
         assert result.exit_code == 0
         assert mock_listen.called
