@@ -98,6 +98,31 @@ def stress_progress(
         progress.stop()
 
 
+def print_trap_received(
+    record: Mapping[str, Any],
+    fmt: OutputFormat = OutputFormat.RICH,
+    console: Console | None = None,
+) -> None:
+    """Print a single received trap. Called once per arriving trap (streaming).
+
+    Rich: header line with timestamp and host, then OID/Value table.
+    JSON: one JSON object per line, newline-delimited.
+    """
+    if fmt == OutputFormat.JSON:
+        print(json.dumps(record))
+        return
+    c = console or _default_console
+    c.print(f"[bold]{record['timestamp']}[/bold] Trap from [cyan]{record['host']}[/cyan]")
+    varbinds = record.get("varbinds", [])
+    if varbinds:
+        table = Table(show_header=True, header_style="bold cyan")
+        table.add_column("OID")
+        table.add_column("Value")
+        for vb in varbinds:
+            table.add_row(str(vb["oid"]), str(vb["value"]))
+        c.print(table)
+
+
 def print_error(
     record: Mapping[str, Any],
     fmt: OutputFormat = OutputFormat.RICH,
