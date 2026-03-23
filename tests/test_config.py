@@ -127,8 +127,7 @@ def test_profile_port_overrides_env_port(tmp_path, monkeypatch):
 
 def test_resolve_credentials_default_port_162(monkeypatch):
     """resolve_credentials(default_port=162) returns port=162 when no env var overrides it."""
-    for key in ["SNMPV3_PORT"]:
-        monkeypatch.delenv(key, raising=False)
+    monkeypatch.delenv("SNMPV3_PORT", raising=False)
 
     creds = resolve_credentials(default_port=162)
     assert creds.port == 162
