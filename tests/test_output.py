@@ -3,7 +3,13 @@ import json
 
 from rich.console import Console
 
-from snmpv3_utils.output import OutputFormat, print_error, print_records, print_single, print_trap_received
+from snmpv3_utils.output import (
+    OutputFormat,
+    print_error,
+    print_records,
+    print_single,
+    print_trap_received,
+)
 
 
 def test_print_single_json(capsys):
