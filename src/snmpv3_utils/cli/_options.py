@@ -50,6 +50,7 @@ def build_usm_from_cli(
     port: int | None,
     timeout: int | None,
     retries: int | None,
+    default_port: int = 161,
 ) -> tuple[UsmUserData, Credentials]:
     """Resolve credentials from CLI options and build a USM user object."""
     overrides = {
@@ -64,7 +65,9 @@ def build_usm_from_cli(
         "retries": retries,
     }
     try:
-        creds = resolve_credentials(profile_name=profile, cli_overrides=overrides)
+        creds = resolve_credentials(
+            profile_name=profile, cli_overrides=overrides, default_port=default_port
+        )
         return build_usm_user(creds), creds
     except KeyError as e:
         typer.echo(f"Error: profile {e} not found", err=True)
