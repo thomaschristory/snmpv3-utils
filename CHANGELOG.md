@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-24
+
+### Added
+- `snmpv3 trap listen` command — blocking SNMPv3 trap receiver using pysnmp v7's asyncio transport (#1)
+- `TrapReceived` TypedDict (`host`, `timestamp` UTC ISO-8601 with Z suffix, `varbinds`) exported from package
+- `print_trap_received()` streaming formatter: Rich table output or JSON newline-delimited (`--format json`)
+- Auto-loads all saved profiles when no credentials are specified; falls back to inline credentials when provided
+- Robust error handling: port bind failures, malformed varBinds, per-profile load errors (warns and skips)
+
 ## [0.4.1] - 2026-03-23
 
 ### Fixed
