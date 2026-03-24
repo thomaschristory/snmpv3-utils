@@ -74,6 +74,23 @@ class TrapError(TypedDict):
 
 TrapResult: TypeAlias = TrapSuccess | TrapError
 
+# --- Trap listener operation ---
+
+
+class TrapReceived(TypedDict):
+    """One received SNMPv3 trap, as passed to the on_trap callback.
+
+    host: source IP string; "unknown" if transport address extraction failed.
+    timestamp: UTC ISO-8601 second-precision with Z suffix.
+    varbinds: all variable bindings; snmpTrapOID.0 is typically the first entry.
+    Note: the authenticated USM username is intentionally absent (future iteration).
+    """
+
+    host: str
+    timestamp: str  # UTC ISO-8601, e.g. "2026-03-23T12:34:56Z"
+    varbinds: list[VarBindSuccess]
+
+
 # --- Stress test operation ---
 
 

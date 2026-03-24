@@ -51,11 +51,103 @@ class TestTrapSend:
 
 
 class TestTrapListen:
-    def test_listen_exits_nonzero_with_not_implemented_message(self):
-        """The listen stub should exit 1 and print the NotImplementedError message."""
-        result = runner.invoke(app, ["trap", "listen", "--port", "16200", "--username", "test"])
-        assert result.exit_code != 0
-        assert "not implemented" in result.output.lower()
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli.trap.config.list_profiles")
+    def test_no_credentials_no_profiles_exits_1(self, mock_list, mock_listen):
+        mock_list.return_value = []
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299"])
+        assert result.exit_code == 1
+        mock_listen.assert_not_called()
+
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli.trap.build_usm_user")
+    @patch("snmpv3_utils.cli.trap.config.load_profile")
+    @patch("snmpv3_utils.cli.trap.config.list_profiles")
+    def test_no_credentials_loads_all_profiles(self, mock_list, mock_load, mock_usm, mock_listen):
+        from snmpv3_utils.security import Credentials
+
+        mock_list.return_value = ["alice", "bob"]
+        mock_load.return_value = Credentials(username="alice")
+        mock_usm.return_value = object()
+        mock_listen.return_value = None
+
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299"])
+        assert result.exit_code == 0
+
+        assert mock_load.call_count == 2
+        assert mock_listen.called
+        call_args = mock_listen.call_args
+        users_arg = call_args.kwargs.get("users") or call_args.args[1]
+        assert len(users_arg) == 2
+
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_explicit_profile_uses_single_user(self, mock_usm, mock_creds, mock_listen):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials(username="alice")
+        mock_usm.return_value = object()
+        mock_listen.return_value = None
+
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299", "--profile", "alice"])
+
+        assert result.exit_code == 0
+        assert mock_listen.called
+        call_args = mock_listen.call_args
+        users_arg = call_args.kwargs.get("users") or call_args.args[1]
+        assert len(users_arg) == 1
+
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_inline_credentials_uses_single_user(self, mock_usm, mock_creds, mock_listen):
+        from snmpv3_utils.security import Credentials
+
+        mock_creds.return_value = Credentials(username="admin")
+        mock_usm.return_value = object()
+        mock_listen.return_value = None
+
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299", "--username", "admin"])
+
+        assert result.exit_code == 0
+        assert mock_listen.called
+        call_args = mock_listen.call_args
+        users_arg = call_args.kwargs.get("users") or call_args.args[1]
+        assert len(users_arg) == 1
+
+    @patch("snmpv3_utils.cli.trap.print_trap_received")
+    @patch("snmpv3_utils.cli.trap.core_listen")
+    @patch("snmpv3_utils.cli._options.resolve_credentials")
+    @patch("snmpv3_utils.cli._options.build_usm_user")
+    def test_listen_on_trap_wired_to_print_trap_received(
+        self, mock_usm, mock_creds, mock_listen, mock_print
+    ):
+        """The on_trap callback must call print_trap_received, not print_single."""
+        from snmpv3_utils.output import OutputFormat
+        from snmpv3_utils.security import Credentials
+        from snmpv3_utils.types import TrapReceived
+
+        mock_creds.return_value = Credentials(username="alice")
+        mock_usm.return_value = object()
+
+        sample_record: TrapReceived = {
+            "host": "10.0.0.1",
+            "timestamp": "2026-03-23T12:00:00Z",
+            "varbinds": [{"oid": "1.3.6.1.2.1.1.3.0", "value": "0"}],
+        }
+
+        def invoke_on_trap(*args, **kwargs):
+            on_trap = kwargs.get("on_trap")
+            if on_trap:
+                on_trap(sample_record)
+
+        mock_listen.side_effect = invoke_on_trap
+
+        result = runner.invoke(app, ["trap", "listen", "--port", "16299", "--username", "alice"])
+
+        assert result.exit_code == 0
+        mock_print.assert_called_once_with(sample_record, fmt=OutputFormat.RICH)
 
 
 class TestTrapSendDefaultPort:
